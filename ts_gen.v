@@ -2,36 +2,135 @@ module ts_gen(
     input                clk, //1GHz sys clock.
     input                rst,
     input[7:0]           ts_info, //state:[7:4] sub_state[3:0]
-    input                ts_start,
-    output               ts_start,
+    input                ts_update,
+    input                ts_stop,    
     input                speed,
-    output[LANE_NUM-1:0] ts1_p2c
+    output               to_tsa_ts_sent_enough
+    output               ts_valid,
+    output[127:0]        ts,
+    input                tx_fifo_full
+    
 );
 
-localparam COM = 8'hBC; //8'b101 11100
-localparam PADG12 = 8'hF7;
+//localparam COM = 8'hBC; //8'b101 11100
+//localparam PADG12 = 8'hF7;
 
 wire[3:0] curr_state = ts_info[7:4];
 wire[3:0] curr_sub_st = ts_info[3:0];
 
 reg[15:0] cnt;
-//wire[127:0] ts1_p2c = {
-reg[7:0] symbol00_nxt, symbol00_reg; 
-reg[7:0] symbol01_nxt, symbol01_reg;
-reg[7:0] symbol02_nxt, symbol02_reg;
-reg[7:0] symbol03_nxt, symbol03_reg;
-reg[7:0] symbol04_nxt, symbol04_reg;
-reg[7:0] symbol05_nxt, symbol05_reg;
-reg[7:0] symbol06_nxt, symbol06_reg;
-reg[7:0] symbol07_nxt, symbol07_reg;
-reg[7:0] symbol08_nxt, symbol08_reg;
-reg[7:0] symbol09_nxt, symbol09_reg;
-reg[7:0] symbol10_nxt, symbol10_reg;
-reg[7:0] symbol11_nxt, symbol11_reg; 
-reg[7:0] symbol12_nxt, symbol12_reg;
-reg[7:0] symbol13_nxt, symbol13_reg;
-reg[7:0] symbol14_nxt, symbol14_reg;
-reg[7:0] symbol15_nxt, symbol15_reg;
+integer i;
+
+reg[7:0] symbol_nxt[0:15];
+reg[7:0] symbol_reg[0:15];
+
+wire ts_reg = {
+        symbol_reg[0],
+        symbol_reg[1],
+        symbol_reg[2],
+        symbol_reg[3],
+        symbol_reg[4],
+        symbol_reg[5],
+        symbol_reg[6],
+        symbol_reg[7],
+        symbol_reg[8],
+        symbol_reg[9],
+        symbol_reg[10],
+        symbol_reg[11],
+        symbol_reg[12],
+        symbol_reg[13],
+        symbol_reg[14],
+        symbol_reg[15]};
+
+
+
+//state machine sequential logic
+always@(posedge clk) begin
+    if(rst) begin
+        state_reg <= 2'b00;
+    end else begin
+        state_reg <= state_nxt;
+    end
+end
+//symbol update
+always@(posedge clk) begin
+    if(rst) begin
+        for(i=0;i<16;i=i+1) begin
+            symbol_reg[i] <= 0;
+        end
+    end else begin
+        for(i=0;i<16;i=i+1) begin
+            symbol_reg[i] <= symbol_nxt[i]; 
+        end
+    end
+end
+//start counting when given the signal
+//free running counter
+always@(posedge clk) begin
+    if(rst) begin
+        cnt <= 0;
+    end else begin
+        if(cnt_start_reg) begin
+            cnt <= 0;
+        end else if(cnt_rst) begin
+            cnt <= 0;
+        end else begin
+            cnt <= cnt + 1;
+        end
+    end
+end
+
+always@* begin
+    state_nxt = state_reg;
+    target_nxt = target_reg;
+    for(i=0;i<16;i=i+1) begin
+        symbol_nxt[i] = symbol_reg[i]; 
+    end
+    cnt_nxt = cnt_reg;
+    case(state_reg)
+        2'b00: begin // await TS signal
+            if(ts_update) begin
+                state_nxt = 2'b01; //transmit active
+                if(curr_state == `POLL ) begin
+                    symbol_nxt[0]  = `COM;
+                    symbol_nxt[1]  = `PADG12;
+                    symbol_nxt[2]  = `PADG12;
+                    symbol_nxt[3]  = 8'hFF;
+                    symbol_nxt[4]  = {2'b00,`RATE_SUPPORT};
+                    symbol_nxt[5]  = 8'h00;
+                    symbol_nxt[6]  = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[7]  = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[8]  = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[9]  = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[10] = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[11] = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[12] = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[13] = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[14] = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    symbol_nxt[15] = curr_sub_st == POLL_ACTIVE ? `D10_2 : D5_2;
+                    target_nxt     = curr_sub_st == POLL_ACTIVE ? `NUM_POLL_ACT2CFG: NUM_POLL2CFG ;
+                end
+            end
+        end
+
+        2'b01: begin //transmitting state
+            if(cnt >= target_reg) begin //at least 1024 TS1s transmitted
+                to_tsa_ts_sent_enough_nxt = 1'b1;
+            end
+
+            if(~tx_fifo_full) begin
+                ts_valid_nxt = 1'b1;
+                cnt_nxt = cnt_reg + 1;
+            end
+
+            if(ts_update) begin //better assert two cycles. yes.
+                state_nxt = 2'b00;
+            end
+            
+        end
+    endcase
+
+end
 
 
 

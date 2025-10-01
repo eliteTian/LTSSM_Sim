@@ -1,30 +1,26 @@
 module core_fsm(
-    input               clk, //1GHz sys clock.
-    input               rst,
+    input                    clk, //1GHz sys clock.
+    input                    rst,
     //DETECT STATE
-    input[LANE_NUM-1:0]     elec_idle_break,
-    output[LANE_NUM-1:0]    rx_det_seq_req,
-    input[LANE_NUM-1:0]     rx_det_seq_ack,
-    input[LANE_NUM-1:0]     rx_det_valid,
+    input[`LANE_NUM-1:0]     elec_idle_break,
+    output[`LANE_NUM-1:0]    rx_det_seq_req,
+    input[`LANE_NUM-1:0]     rx_det_seq_ack,
+    input[`LANE_NUM-1:0]     rx_det_valid,
     //POLL STATE
-    output[7:0]         ts_info, //state:[7:4] sub_state[3:0]
-    output              ts_start,
-    output[5:0]         speed,
-    input[LANE_NUM-1:0] ts1_p2c,
-    input[LANE_NUM-1:0] ts1_p2c,
+    output[7:0]              ts_info, //state:[7:4] sub_state[3:0]
+    output                   ts_update,
+    output                   ts_stop,
+    output[5:0]              speed,
+    input[`LANE_NUM-1:0]     ts1_p2c,
+    input[`LANE_NUM-1:0]     ts1_p2c,
     
-
-    input               p2d,
-    input               p2c,
-    input               c2p,
-
 );
 reg[31:0] cnt;
 reg pulse_set_reg; pulse_set_nxt;
 
-localparam DETECT = 4'h0, POLL = 4'h1, CFG = 4'h2;
-localparam D_ACTIVE = 2'b01, D_QUIET = 2'b00;
-localparam POLL_ACTIVE = 2'b01, POLL_CFG = 2'b00, POLL_SPEED, POLL_COMP;
+//localparam DETECT = 4'h0, POLL = 4'h1, CFG = 4'h2;
+//localparam D_ACTIVE = 2'b01, D_QUIET = 2'b00;
+//localparam POLL_ACTIVE = 2'b01, POLL_CFG = 2'b00, POLL_SPEED, POLL_COMP;
 
 reg[3:0] state_nxt, state_reg;
 reg[1:0] detect_subst_nxt, detect_subst_reg;
@@ -129,11 +125,11 @@ always@*
                         cnt_start_nxt = 1'b1;
                         timeout_val_nxt = 'd24000000; //set as 12us to speed up sim;
                         ts_info_nxt = {4'b0001,4'b0000};
-                        ts_start_nxt = 1'b1;
+                        ts_update_nxt = 1'b1;
                     end else begin
                         cnt_start_nxt = 1'b0;
                         pulse_set_nxt = 1'b0;
-                        ts_start_nxt = 1'b0;
+                        ts_update_nxt = 1'b0;
                     end
 
                     if(&ts1_p2c) begin
@@ -149,11 +145,11 @@ always@*
                         cnt_start_nxt = 1'b1;
                         timeout_val_nxt = 'd24000000; //set as 12us to speed up sim;
                         ts_info_nxt = {4'b0001,4'b0001};
-                        ts_start_nxt = 1'b1;
+                        ts_update_nxt = 1'b1;
                     end else begin
                         cnt_start_nxt = 1'b0;
                         pulse_set_nxt = 1'b0;
-                        ts_start_nxt = 1'b0;
+                        ts_update_nxt = 1'b0;
                     end
 
                     if(&ts1_p2c) begin
@@ -164,7 +160,7 @@ always@*
             endcase
         endcase
 
-                    
+endmodule                  
 
 
             
