@@ -62,11 +62,13 @@ always@(posedge clk) begin
         cnt_start_reg <= 1'b0;
         timeout_val_reg <= 0;
         ts_info_reg <= 0;
+        ts_update_reg <= 0;
     end else begin
         pulse_set_reg <= pulse_set_nxt;
         cnt_start_reg <= cnt_start_nxt;
         timeout_val_reg <= timeout_val_nxt;
         ts_info_reg <= ts_info_nxt;
+        ts_update_reg <= ts_update_nxt;
     end
 end
 
@@ -91,13 +93,17 @@ always@(posedge clk) begin
     end
 end
 
-wire timeout = ~&cnt;
+wire timeout = ~|cnt & ~cnt_start_reg ;
 
 always@* begin
     state_nxt = state_reg;
+    detect_subst_nxt = detect_subst_reg;
+    poll_subst_nxt = poll_subst_reg;
     cnt_start_nxt = cnt_start_reg;
     timeout_val_nxt = timeout_val_reg;
     pulse_set_nxt = pulse_set_reg;
+    ts_update_nxt = ts_update_reg;
+    ts_info_nxt = ts_info_reg;
     case(state_reg)
         `DETECT: begin
             case(detect_subst_reg)
@@ -108,11 +114,11 @@ always@* begin
                         timeout_val_nxt = 'd12000000; //set as 12us to speed up sim;
                     end else begin
                         cnt_start_nxt = 1'b0;
-                        pulse_set_nxt = 1'b0;
                     end
 
-                    if(~|elec_idle_break || timeout) begin
+                    if(|elec_idle_break || timeout) begin
                         detect_subst_nxt = `D_ACTIVE;
+                        pulse_set_nxt = 1'b0;
                     end
                 end
                 `D_ACTIVE: begin
@@ -122,7 +128,6 @@ always@* begin
                         timeout_val_nxt = 'd12000; //set as 12us to speed up sim;
                     end else begin
                         cnt_start_nxt = 1'b0;
-                        pulse_set_nxt = 1'b0;
                     end
 
                     rx_det_seq_req_nxt = &rx_det_seq_ack ?  4'h0: 4'hF;
@@ -150,7 +155,6 @@ always@* begin
                         ts_update_nxt = 1'b1;
                     end else begin
                         cnt_start_nxt = 1'b0;
-                        pulse_set_nxt = 1'b0;
                         ts_update_nxt = 1'b0;
                     end
 
@@ -170,7 +174,6 @@ always@* begin
                         ts_update_nxt = 1'b1;
                     end else begin
                         cnt_start_nxt = 1'b0;
-                        pulse_set_nxt = 1'b0;
                         ts_update_nxt = 1'b0;
                     end
 

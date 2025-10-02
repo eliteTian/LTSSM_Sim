@@ -60,6 +60,11 @@ wire         dsp_lane2_ts_vld;
 wire [127:0] dsp_lane3_ts;
 wire         dsp_lane3_ts_vld;
 
+wire        lane0_idel_break;
+wire        lane1_idel_break;
+wire        lane2_idel_break;
+wire        lane3_idel_break;
+
 
 
 LTSSM LTSSM_DSP(
@@ -105,6 +110,18 @@ LTSSM LTSSM_DSP(
     .linkup                     (    )
 );
 
+
+delay_shim #(
+    .WIDTH(1),
+    .DELAY_CYCLES(500)  // 500 clock cycles delay
+) elec_idle_break_delay (
+    .clk    (clk),
+    .in_sig (usp_lane0_rx_det),
+    .out_sig(dsp_lane0_rx_det)
+);
+
+
+
 LTSSM LTSSM_USP(
     .clk                        (clk     ), 
     .rst				        (rst     ),
@@ -146,6 +163,9 @@ LTSSM LTSSM_USP(
     .lane3_ts_o				    ( usp_lane3_ts       ),
     .lane3_ts_o_vld				( usp_lane3_ts_vld   ),
     .linkup                     (    )
+
 );
+
+
 
 endmodule

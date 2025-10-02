@@ -81,8 +81,9 @@ wire[3:0]   w_elec_idle_brk     =   {lane3_idel_break,lane2_idel_break,lane1_ide
 wire[3:0]   w_rx_det_seq_ack    =   {lane3_rx_det_seq_ack,lane2_rx_det_seq_ack,lane1_rx_det_seq_ack,lane0_rx_det_seq_ack};
 wire[3:0]   w_rx_det_seq_req;
 assign      {lane3_rx_det_seq_req,lane2_rx_det_seq_req,lane1_rx_det_seq_req,lane0_rx_det_seq_req} = w_rx_det_seq_req;
-wire[3:0]   w_lanes_rx_det;
-assign      {lane3_rx_det, lane2_rx_det, lane1_rx_det, lane0_rx_det} = lane0_rx_det;
+
+wire[3:0]   w_lanes_rx_det; 
+assign      w_lanes_rx_det = {lane3_rx_det, lane2_rx_det, lane1_rx_det, lane0_rx_det} ;
 
 wire[7:0]   w_ts_info;
 wire        w_ts_start;
@@ -141,7 +142,7 @@ core_fsm core_fsm_u(
     .elec_idle_break                (w_elec_idle_brk),
     .rx_det_seq_req                 (w_rx_det_seq_req),
     .rx_det_seq_ack                 (w_rx_det_seq_ack),
-    .rx_det_valid                   (lanes_rx_det),
+    .rx_det_valid                   (w_lanes_rx_det),
 
     .ts_info                        (w_ts_info), //state:[7:4] sub_state[3:0]
     .ts_update                      (w_ts_update),
