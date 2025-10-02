@@ -1,3 +1,5 @@
+`timescale 1ns/100ps
+`include "define.v"
 /* This project is aimed for understanding core LTSSM transition.
 It's meant to be a digital only project, many core analog signals
 are omitted or substituted by simulation construct. The core is
@@ -29,8 +31,8 @@ Gen5: 32.0Gx(128/130) = 32Gbps(neglecting encoding): coming at 1 valid/ 128/32=4
 
 
 module LTSSM(
-    input clk, //1GHz sys clock.
-    input rst,
+    input            clk, //1GHz sys clock.
+    input            rst,
     //RX detect
     input            lane0_rx_det,
     input            lane1_rx_det,
@@ -72,83 +74,84 @@ module LTSSM(
     output           lane3_ts_o_vld,
 
 
-    output          linkup
+    output           linkup
 );
 
-wire[3:0]   w_elec_idle_brk = {lane3_idel_break,lane2_idel_break,lane1_idel_break,lane0_idel_break};
-wire[3:0]   w_rx_det_seq_ack = {lane3_rx_det_seq_ack,lane2_rx_det_seq_ack,lane1_rx_det_seq_ack,lane0_rx_det_seq_ack};
+wire[3:0]   w_elec_idle_brk     =   {lane3_idel_break,lane2_idel_break,lane1_idel_break,lane0_idel_break};
+wire[3:0]   w_rx_det_seq_ack    =   {lane3_rx_det_seq_ack,lane2_rx_det_seq_ack,lane1_rx_det_seq_ack,lane0_rx_det_seq_ack};
 wire[3:0]   w_rx_det_seq_req;
-assign      {lane3_rx_det_seq_req,lane2_rx_det_seq_req,lane1_rx_det_seq_req,lane0_rx_det_seq_req};
+assign      {lane3_rx_det_seq_req,lane2_rx_det_seq_req,lane1_rx_det_seq_req,lane0_rx_det_seq_req} = w_rx_det_seq_req;
 wire[3:0]   w_lanes_rx_det;
 assign      {lane3_rx_det, lane2_rx_det, lane1_rx_det, lane0_rx_det} = lane0_rx_det;
 
-wire[7:0] w_ts_info;
-wire      w_ts_start;
+wire[7:0]   w_ts_info;
+wire        w_ts_start;
 
 ts_gen ts_gen_u0(
-   .clk(clk), //1GHz sys clock.
-   .rst(rst),
-   .ts_info(w_ts_info), //state:[7:4] sub_state[3:0]
-   .ts_update(w_ts_update),
-   .ts_stop(ts_stop),    
-   .to_tsa_ts_sent_enough
-   .ts_valid(lane0_ts_o_vld),
-   .ts(lane0_ts_o),
-   .tx_fifo_full
-)
+   .clk                             (clk), //1GHz sys clock.
+   .rst                             (rst),
+   .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
+   .ts_update                       (w_ts_update),
+   .ts_stop                         (ts_stop),    
+   .to_tsa_ts_sent_enough           (),
+   .ts_valid                        (lane0_ts_o_vld),
+   .ts                              (lane0_ts_o),
+   .ts_tx_fifo_full                    ()
+);
 
 ts_gen ts_gen_u1(
-   .clk(clk), //1GHz sys clock.
-   .rst(rst),
-   .ts_info(w_ts_info), //state:[7:4] sub_state[3:0]
-   .ts_update(w_ts_update),
-   .ts_stop(ts_stop),    
-   .to_tsa_ts_sent_enough
-   .ts_valid(lane1_ts_o_vld),
-   .ts(lane1_ts_o),
-   .tx_fifo_full
-)
+   .clk                             (clk), //1GHz sys clock.
+   .rst                             (rst),
+   .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
+   .ts_update                       (w_ts_update),
+   .ts_stop                         (ts_stop),    
+   .to_tsa_ts_sent_enough           (),
+   .ts_valid                        (lane1_ts_o_vld),
+   .ts                              (lane1_ts_o),
+   .ts_tx_fifo_full                    ()
+);
 
 ts_gen ts_gen_u2(
-   .clk(clk), //1GHz sys clock.
-   .rst(rst),
-   .ts_info(w_ts_info), //state:[7:4] sub_state[3:0]
-   .ts_update(w_ts_update),
-   .ts_stop(ts_stop),    
-   .to_tsa_ts_sent_enough
-   .ts_valid(lane2_ts_o_vld),
-   .ts(lane2_ts_o),
-   .tx_fifo_full
-)
+   .clk                             (clk), //1GHz sys clock.
+   .rst                             (rst),
+   .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
+   .ts_update                       (w_ts_update),
+   .ts_stop                         (ts_stop),    
+   .to_tsa_ts_sent_enough           (),
+   .ts_valid                        (lane2_ts_o_vld),
+   .ts                              (lane2_ts_o),
+   .ts_tx_fifo_full                    ()
+);
 
 ts_gen ts_gen_u3(
-   .clk(clk), //1GHz sys clock.
-   .rst(rst),
-   .ts_info(w_ts_info), //state:[7:4] sub_state[3:0]
-   .ts_update(w_ts_update),
-   .ts_stop(ts_stop),    
-   .to_tsa_ts_sent_enough
-   .ts_valid(lane3_ts_o_vld),
-   .ts(lane3_ts_o),
-   .tx_fifo_full
-)
-
-
-
+   .clk                             (clk), //1GHz sys clock.
+   .rst                             (rst),
+   .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
+   .ts_update                       (w_ts_update),
+   .ts_stop                         (ts_stop),    
+   .to_tsa_ts_sent_enough           (),
+   .ts_valid                        (lane3_ts_o_vld),
+   .ts                              (lane3_ts_o),
+   .ts_tx_fifo_full                    ()
+);
 
 core_fsm core_fsm_u(
-    .clk(clk), //1GHz sys clock.
-    .rst(rst),
+    .clk                            (clk), //1GHz sys clock.
+    .rst                            (rst),
+    .elec_idle_break                (w_elec_idle_brk),
+    .rx_det_seq_req                 (w_rx_det_seq_req),
+    .rx_det_seq_ack                 (w_rx_det_seq_ack),
+    .rx_det_valid                   (lanes_rx_det),
 
-    .elec_idle_break(w_elec_idle_brk),
-    .rx_det_seq_req(w_rx_det_seq_req),
-    .rx_det_seq_ack(w_rx_det_seq_ack),
-    .rx_det_valid(lanes_rx_det),
-
-    .ts_info(w_ts_info), //state:[7:4] sub_state[3:0]
-    .ts_update(w_ts_update),
-    .ts_stop(w_ts_stop),
-    .curr_speed()
+    .ts_info                        (w_ts_info), //state:[7:4] sub_state[3:0]
+    .ts_update                      (w_ts_update),
+    .ts_stop                        (w_ts_stop),
+    
+    .curr_speed                     (),
+    .tsa_p2c                        (),
+    .tsa_p_a2c                      ()
 );
+
+endmodule
     
 

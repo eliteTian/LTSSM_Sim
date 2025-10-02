@@ -1,4 +1,4 @@
-`define LANE_NUM        4
+`define LANE_NUM            4
 
 
 `define COM                 8'hBC
