@@ -31,6 +31,7 @@ reg[7:0] symbol_nxt[0:15];
 reg[7:0] symbol_reg[0:15];
 reg to_tsa_ts_sent_enough_nxt, to_tsa_ts_sent_enough_reg;
 assign to_tsa_ts_sent_enough = to_tsa_ts_sent_enough_reg;
+reg ts_valid_nxt, ts_valid_reg;
 
 wire ts_reg = {
         symbol_reg[0],
@@ -96,17 +97,20 @@ always@(posedge clk) begin
         cnt_reg <= 0;
         target_reg <= 0;
         to_tsa_ts_sent_enough_reg <= 0;
+        ts_valid_reg <= 1'b0;
     end else begin
         state_reg <= state_nxt;
         cnt_reg <= cnt_nxt;
         target_reg <= target_nxt;
         to_tsa_ts_sent_enough_reg <= to_tsa_ts_sent_enough_nxt;
+        ts_valid_reg <= state_nxt;
     end
 end
 
 always@* begin
     state_nxt = state_reg;
     target_nxt = target_reg;
+    ts_valid_nxt = ts_valid_reg;
     for(i=0;i<16;i=i+1) begin
         symbol_nxt[i] = symbol_reg[i]; 
     end
@@ -141,7 +145,7 @@ always@* begin
             if(cnt_reg >= target_reg) begin //at least 1024 TS1s transmitted
                 to_tsa_ts_sent_enough_nxt = 1'b1;
             end
-            if(~tx_fifo_full) begin
+            if(~ts_tx_fifo_full) begin
                 ts_valid_nxt = 1'b1;
                 cnt_nxt = cnt_reg + 1;
             end
