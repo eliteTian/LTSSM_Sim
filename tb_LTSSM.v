@@ -3,10 +3,13 @@
 module LTSSM_tb;
 
 reg clk;
+reg phy_clk;
 reg rst;
+wire[5:0] speed;
 
 initial begin
     #0 clk = 1'b0;
+       phy_clk = 1'b0;
        rst = 1'b0;
     #10
        rst = 1'b1;
@@ -17,6 +20,14 @@ end
 //1G clk
 always
     #0.5 clk = ~clk;
+
+always
+    case(speed)
+        `G1: #0.2 phy_clk = ~phy_clk;
+        `G2: #0.1 phy_clk = ~phy_clk;
+        `G3: #0.0625 phy_clk = ~phy_clk;
+        `G4: #0.03125 phy_clk = ~phy_clk;
+    endcase
     
 wire    usp_lane0_rx_det;
 wire    usp_lane1_rx_det;
@@ -102,6 +113,19 @@ wire        usp_lane2_rx_det_vld;
 wire        usp_lane3_rx_det_vld;
 
 
+//FIFO BUSY
+wire        usp_lane0_fifo_busy;
+wire        usp_lane1_fifo_busy;
+wire        usp_lane2_fifo_busy;
+wire        usp_lane3_fifo_busy;
+
+wire        dsp_lane0_fifo_busy;
+wire        dsp_lane1_fifo_busy;
+wire        dsp_lane2_fifo_busy;
+wire        dsp_lane3_fifo_busy;
+
+
+
 LTSSM LTSSM_DSP(
     .clk                        (  clk   ),
     .rst				        (  rst   ),
@@ -131,17 +155,23 @@ LTSSM LTSSM_DSP(
     .lane0_ts_o			    	( dsp_lane0_ts       ),
     .lane0_ts_o_vld				( dsp_lane0_ts_vld   ),
     .lane1_ts_i				    ( usp_lane1_ts       ),
-    .lane1_ts_i_vld				( usp_lane1_ts_vld  ),
-    .lane1_ts_o				    ( dsp_lane1_ts      ),
-    .lane1_ts_o_vld				( dsp_lane1_ts_vld  ),
-    .lane2_ts_i				    ( usp_lane2_ts      ),
-    .lane2_ts_i_vld				( usp_lane2_ts_vld  ),
-    .lane2_ts_o				    ( dsp_lane2_ts     ),
-    .lane2_ts_o_vld				( dsp_lane2_ts_vld ),
-    .lane3_ts_i				    ( usp_lane3_ts      ),
-    .lane3_ts_i_vld				( usp_lane3_ts_vld  ),
-    .lane3_ts_o				    ( dsp_lane3_ts      ),
-    .lane3_ts_o_vld				( dsp_lane3_ts_vld  ),
+    .lane1_ts_i_vld				( usp_lane1_ts_vld   ),
+    .lane1_ts_o				    ( dsp_lane1_ts       ),
+    .lane1_ts_o_vld				( dsp_lane1_ts_vld   ),
+    .lane2_ts_i				    ( usp_lane2_ts       ),
+    .lane2_ts_i_vld				( usp_lane2_ts_vld   ),
+    .lane2_ts_o				    ( dsp_lane2_ts       ),
+    .lane2_ts_o_vld				( dsp_lane2_ts_vld   ),
+    .lane3_ts_i				    ( usp_lane3_ts       ),
+    .lane3_ts_i_vld				( usp_lane3_ts_vld   ),
+    .lane3_ts_o				    ( dsp_lane3_ts       ),
+    .lane3_ts_o_vld				( dsp_lane3_ts_vld   ),
+
+    .lane0_tx_fifo_full         ( dsp_lane0_fifo_busy      ),           
+    .lane1_tx_fifo_full         ( dsp_lane1_fifo_busy      ),
+    .lane2_tx_fifo_full         ( dsp_lane2_fifo_busy      ),
+    .lane3_tx_fifo_full         ( dsp_lane3_fifo_busy      ),
+    .curr_speed                 (speed),
     .linkup                     (                    )
 );
 
@@ -361,9 +391,97 @@ LTSSM LTSSM_USP(
     .lane3_ts_i_vld				( dsp_lane3_ts_vld   ),
     .lane3_ts_o				    ( usp_lane3_ts       ),
     .lane3_ts_o_vld				( usp_lane3_ts_vld   ),
+
+    .lane0_tx_fifo_full         ( usp_lane0_fifo_busy   ),
+    .lane1_tx_fifo_full         ( usp_lane1_fifo_busy   ),
+    .lane2_tx_fifo_full         ( usp_lane2_fifo_busy   ),
+    .lane3_tx_fifo_full         ( usp_lane3_fifo_busy   ),
+    .curr_speed                 (speed),
     .linkup                     (    )
 
 );
+
+serdes dsp_serdes_0 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(dsp_lane0_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(dsp_lane0_fifo_busy)          // busy output
+);
+
+serdes dsp_serdes_1 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(dsp_lane1_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(dsp_lane1_fifo_busy)          // busy output
+);
+
+serdes dsp_serdes_2 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(dsp_lane2_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(dsp_lane2_fifo_busy)          // busy output
+);
+
+serdes dsp_serdes_3 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(dsp_lane3_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(dsp_lane3_fifo_busy)          // busy output
+);
+
+
+serdes usp_serdes_0 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(usp_lane0_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(usp_lane0_fifo_busy)          // busy output
+);
+
+serdes usp_serdes_1 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(usp_lane1_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(usp_lane1_fifo_busy)          // busy output
+);
+
+serdes usp_serdes_2 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(usp_lane2_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(usp_lane2_fifo_busy)          // busy output
+);
+
+serdes usp_serdes_3 (
+    .clk(clk),          // system clock
+    .phy_clk(phy_clk),      // PHY clock
+    .rst(rst),          // reset
+    .data_valid(usp_lane3_ts_vld),   // input data valid signal
+    .speed(speed),        // speed control
+    .speed_change(), // speed change indicator
+    .busy(usp_lane3_fifo_busy)          // busy output
+);
+
 
 
 

@@ -1,4 +1,5 @@
 `timescale 1ns/100ps
+`include "define.v"
 module elec_idle #(
     parameter DELAY_CYCLES = 1000,  // configurable delay in clock cycles
     parameter WIDTH = 4
@@ -97,5 +98,36 @@ endtask
 
 
 endmodule
+
+module serdes(
+    input               clk,
+    input               phy_clk,
+    input               rst,
+    input               data_valid,
+    input               speed,
+    input               speed_change,
+    output   reg        busy
+);
+
+wire[5:0] cycle_w = (speed == `G1 || speed == `G2)? 160: 130;
+reg[5:0] cycle_r;
+initial begin
+    busy = 1'b0;
+    cycle_r = cycle_w;
+    @(posedge rst);
+    @(posedge clk);
+    busy = 1'b0;
+    forever begin
+        @(posedge data_valid);
+        busy = 1'b1;
+        repeat(cycle_r) @(posedge phy_clk);
+        @(posedge clk);
+        busy = 1'b0;
+    end
+end
+
+
+endmodule
+
 
 

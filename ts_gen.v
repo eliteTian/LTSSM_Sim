@@ -94,7 +94,7 @@ always@(posedge clk) begin
         cnt_reg <= cnt_nxt;
         target_reg <= target_nxt;
         to_tsa_ts_sent_enough_reg <= to_tsa_ts_sent_enough_nxt;
-        ts_valid_reg <= state_nxt;
+        ts_valid_reg <= ts_valid_nxt ;
     end
 end
 
@@ -139,7 +139,10 @@ always@* begin
             if(~ts_tx_fifo_full) begin
                 ts_valid_nxt = 1'b1;
                 cnt_nxt = cnt_reg + 1;
+            end else begin
+                ts_valid_nxt = 1'b0;
             end
+
             if(ts_update) begin //better assert two cycles. yes.
                 state_nxt = 2'b00;
             end

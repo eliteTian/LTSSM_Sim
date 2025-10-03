@@ -73,7 +73,12 @@ module LTSSM(
     output[127:0]    lane3_ts_o,
     output           lane3_ts_o_vld,
 
+    input            lane0_tx_fifo_full,
+    input            lane1_tx_fifo_full,
+    input            lane2_tx_fifo_full,
+    input            lane3_tx_fifo_full,
 
+    output[5:0]      curr_speed,
     output           linkup
 );
 
@@ -97,7 +102,7 @@ ts_gen ts_gen_u0(
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane0_ts_o_vld),
    .ts                              (lane0_ts_o),
-   .ts_tx_fifo_full                    ()
+   .ts_tx_fifo_full                 (lane0_tx_fifo_full)
 );
 
 ts_gen ts_gen_u1(
@@ -109,7 +114,7 @@ ts_gen ts_gen_u1(
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane1_ts_o_vld),
    .ts                              (lane1_ts_o),
-   .ts_tx_fifo_full                    ()
+   .ts_tx_fifo_full                 (lane1_tx_fifo_full)
 );
 
 ts_gen ts_gen_u2(
@@ -121,7 +126,7 @@ ts_gen ts_gen_u2(
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane2_ts_o_vld),
    .ts                              (lane2_ts_o),
-   .ts_tx_fifo_full                    ()
+   .ts_tx_fifo_full                 (lane2_tx_fifo_full)
 );
 
 ts_gen ts_gen_u3(
@@ -133,7 +138,7 @@ ts_gen ts_gen_u3(
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane3_ts_o_vld),
    .ts                              (lane3_ts_o),
-   .ts_tx_fifo_full                    ()
+   .ts_tx_fifo_full                 (lane3_tx_fifo_full)
 );
 
 core_fsm core_fsm_u(
@@ -148,7 +153,7 @@ core_fsm core_fsm_u(
     .ts_update                      (w_ts_update),
     .ts_stop                        (w_ts_stop),
     
-    .curr_speed                     (),
+    .curr_speed                     (curr_speed),
     .tsa_p2c                        (),
     .tsa_p_a2c                      ()
 );

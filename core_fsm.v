@@ -194,5 +194,7 @@ always@* begin
     endcase
 end
 
+assign curr_speed = `G1;
+
 endmodule                  
 
