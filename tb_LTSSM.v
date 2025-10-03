@@ -67,27 +67,34 @@ wire        lane1_idel_break;
 wire        lane2_idel_break;
 wire        lane3_idel_break;
 
-
+wire        dsp_lane0_rx_det_dly;
+wire        dsp_lane1_rx_det_dly;
+wire        dsp_lane2_rx_det_dly;
+wire        dsp_lane3_rx_det_dly;
+wire        usp_lane0_rx_det_dly;
+wire        usp_lane1_rx_det_dly;
+wire        usp_lane2_rx_det_dly;
+wire        usp_lane3_rx_det_dly;
 
 
 LTSSM LTSSM_DSP(
     .clk                        (  clk   ),
     .rst				        (  rst   ),
 
-    .lane0_rx_det				( 1'b1   ),
-    .lane1_rx_det				( 1'b1   ),
-    .lane2_rx_det				( 1'b1   ),
-    .lane3_rx_det				( 1'b1   ),
+    .lane0_rx_det				( dsp_lane0_rx_det  ),
+    .lane1_rx_det				( dsp_lane1_rx_det  ),
+    .lane2_rx_det				( dsp_lane2_rx_det  ),
+    .lane3_rx_det				( dsp_lane3_rx_det  ),
 
     .lane0_idel_break			( lane0_idel_break  ),
     .lane1_idel_break			( lane1_idel_break  ),
     .lane2_idel_break			( lane2_idel_break  ),
     .lane3_idel_break			( lane3_idel_break  ),
 
-    .lane0_rx_det_seq_req		(dsp_lane0_rx_det    ),
-    .lane1_rx_det_seq_req		(dsp_lane1_rx_det    ),
-    .lane2_rx_det_seq_req		(dsp_lane2_rx_det    ),
-    .lane3_rx_det_seq_req		(dsp_lane3_rx_det    ),
+    .lane0_rx_det_seq_req		(dsp_lane0_rx_det_dly    ),
+    .lane1_rx_det_seq_req		(dsp_lane1_rx_det_dly    ),
+    .lane2_rx_det_seq_req		(dsp_lane2_rx_det_dly    ),
+    .lane3_rx_det_seq_req		(dsp_lane3_rx_det_dly    ),
 
     .lane0_rx_det_seq_ack		(usp_lane0_rx_det    ),
     .lane1_rx_det_seq_ack		(usp_lane1_rx_det    ),
@@ -155,26 +162,46 @@ delay_shim #(
 );
 
 
+delay_shim #(
+    .WIDTH(4),
+    .DELAY_CYCLES(500)  // 500 clock cycles delay
+) dsp_lanes_rx_det_delay (
+    .clk    (clk),
+    .rst    (rst),
+    .in_sig ({dsp_lane0_rx_det,dsp_lane1_rx_det,dsp_lane2_rx_det,dsp_lane3_rx_det}),
+    .out_sig({dsp_lane0_rx_det_dly,dsp_lane1_rx_det_dly,dsp_lane2_rx_det_dly,dsp_lane3_rx_det_dly})
+);
+
+delay_shim #(
+    .WIDTH(4),
+    .DELAY_CYCLES(500)  // 500 clock cycles delay
+) usp_lanes_rx_det_delay (
+    .clk    (clk),
+    .rst    (rst),
+    .in_sig ({usp_lane0_rx_det,usp_lane1_rx_det,usp_lane2_rx_det,usp_lane3_rx_det}),
+    .out_sig({usp_lane0_rx_det_dly,usp_lane1_rx_det_dly,usp_lane2_rx_det_dly,usp_lane3_rx_det_dly})
+);
+
 
 
 LTSSM LTSSM_USP(
     .clk                        (clk     ), 
     .rst				        (rst     ),
     
-    .lane0_rx_det				(1'b1    ),
-    .lane1_rx_det				(1'b1    ),
-    .lane2_rx_det				(1'b1    ),
-    .lane3_rx_det				(1'b1    ),
+    .lane0_rx_det				(usp_lane0_rx_det    ),
+    .lane1_rx_det				(usp_lane1_rx_det    ),
+    .lane2_rx_det				(usp_lane2_rx_det    ),
+    .lane3_rx_det				(usp_lane3_rx_det    ),
 
     .lane0_idel_break			( lane0_idel_break  ),
     .lane1_idel_break			( lane1_idel_break  ),
     .lane2_idel_break			( lane2_idel_break  ),
     .lane3_idel_break			( lane3_idel_break  ),
 
-    .lane0_rx_det_seq_req		(usp_lane0_rx_det    ),
-    .lane1_rx_det_seq_req		(usp_lane1_rx_det    ),
-    .lane2_rx_det_seq_req		(usp_lane2_rx_det    ),
-    .lane3_rx_det_seq_req		(usp_lane3_rx_det    ),
+    .lane0_rx_det_seq_req		(usp_lane0_rx_det_dly    ),
+    .lane1_rx_det_seq_req		(usp_lane1_rx_det_dly    ),
+    .lane2_rx_det_seq_req		(usp_lane2_rx_det_dly    ),
+    .lane3_rx_det_seq_req		(usp_lane3_rx_det_dly    ),
 
     .lane0_rx_det_seq_ack		( dsp_lane0_rx_det   ),
     .lane1_rx_det_seq_ack		( dsp_lane1_rx_det   ),
