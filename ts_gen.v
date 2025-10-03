@@ -25,6 +25,7 @@ reg[15:0] target_nxt, target_reg;
 
 integer i;
 
+
 reg[1:0] state_nxt, state_reg;
 
 reg[7:0] symbol_nxt[0:15];
@@ -32,6 +33,10 @@ reg[7:0] symbol_reg[0:15];
 reg to_tsa_ts_sent_enough_nxt, to_tsa_ts_sent_enough_reg;
 assign to_tsa_ts_sent_enough = to_tsa_ts_sent_enough_reg;
 reg ts_valid_nxt, ts_valid_reg;
+
+assign ts = ts_reg;
+assign ts_valid = ts_valid_reg;
+
 
 wire ts_reg = {
         symbol_reg[0],
@@ -50,6 +55,7 @@ wire ts_reg = {
         symbol_reg[13],
         symbol_reg[14],
         symbol_reg[15]};
+
 wire[5:0]   rate_support = `RATE_SUPPORT;
     
     
@@ -75,22 +81,7 @@ always@(posedge clk) begin
         end
     end
 end
-//start counting when given the signal
-//free running counter
-//always@(posedge clk) begin
-//    if(rst) begin
-//        cnt <= 0;
-//    end else begin
-//        if(cnt_start_reg) begin
-//            cnt <= 0;
-//        end else if(cnt_rst) begin
-//            cnt <= 0;
-//        end else begin
-//            cnt <= cnt + 1;
-//        end
-//    end
-//end
-// sequential block for register updates
+
 always@(posedge clk) begin
     if(rst) begin
         state_reg <= 2'b00;

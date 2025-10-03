@@ -39,10 +39,10 @@ module LTSSM(
     input            lane2_rx_det,
     input            lane3_rx_det,
 
-    input            lane0_idel_break,
-    input            lane1_idel_break,
-    input            lane2_idel_break,
-    input            lane3_idel_break,
+    input            lane0_idle_break,
+    input            lane1_idle_break,
+    input            lane2_idle_break,
+    input            lane3_idle_break,
 
     output           lane0_rx_det_seq_req,
     output           lane1_rx_det_seq_req,
@@ -77,7 +77,7 @@ module LTSSM(
     output           linkup
 );
 
-wire[3:0]   w_elec_idle_brk     =   {lane3_idel_break,lane2_idel_break,lane1_idel_break,lane0_idel_break};
+wire[3:0]   w_elec_idle_brk     =   {lane3_idle_break,lane2_idle_break,lane1_idle_break,lane0_idle_break};
 wire[3:0]   w_rx_det_seq_ack    =   {lane3_rx_det_seq_ack,lane2_rx_det_seq_ack,lane1_rx_det_seq_ack,lane0_rx_det_seq_ack};
 wire[3:0]   w_rx_det_seq_req;
 assign      {lane3_rx_det_seq_req,lane2_rx_det_seq_req,lane1_rx_det_seq_req,lane0_rx_det_seq_req} = w_rx_det_seq_req;

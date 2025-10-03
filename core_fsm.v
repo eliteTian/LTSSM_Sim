@@ -28,8 +28,7 @@ reg                          pulse_set_reg, pulse_set_nxt;
 reg[3:0]                     state_nxt, state_reg;
 reg[1:0]                     detect_subst_nxt, detect_subst_reg;
 reg[1:0]                     poll_subst_nxt, poll_subst_reg;
-reg[7:0]                     ts_info_nxt, ts_info_reg;
-assign                       ts_info = ts_info_reg;
+
 
 reg[31:0]                    lane0_info_reg, lane1_info_reg, lane2_info_reg, lane3_info_reg;
 reg[31:0]                    lane0_info_nxt, lane1_info_nxt, lane2_info_nxt, lane3_info_nxt;
@@ -63,12 +62,14 @@ always@(posedge clk) begin
         timeout_val_reg <= 0;
         ts_info_reg <= 0;
         ts_update_reg <= 0;
+        rx_det_seq_req_reg <= 0;
     end else begin
         pulse_set_reg <= pulse_set_nxt;
         cnt_start_reg <= cnt_start_nxt;
         timeout_val_reg <= timeout_val_nxt;
         ts_info_reg <= ts_info_nxt;
         ts_update_reg <= ts_update_nxt;
+        rx_det_seq_req_reg <= rx_det_seq_req_nxt;
     end
 end
 
@@ -104,6 +105,7 @@ always@* begin
     pulse_set_nxt = pulse_set_reg;
     ts_update_nxt = ts_update_reg;
     ts_info_nxt = ts_info_reg;
+    rx_det_seq_req_nxt = rx_det_seq_req_reg;
     case(state_reg)
         `DETECT: begin
             case(detect_subst_reg)
@@ -119,6 +121,7 @@ always@* begin
                     if(|elec_idle_break || timeout) begin
                         detect_subst_nxt = `D_ACTIVE;
                         pulse_set_nxt = 1'b0;
+                        rx_det_seq_req_nxt = 4'hF;
                     end
                 end
                 `D_ACTIVE: begin
@@ -130,12 +133,14 @@ always@* begin
                         cnt_start_nxt = 1'b0;
                     end
 
-                    rx_det_seq_req_nxt = &rx_det_seq_ack ?  4'h0: 4'hF;
+                    rx_det_seq_req_nxt = &rx_det_seq_ack ?  4'h0: rx_det_seq_req_reg ;
 
                     if(&rx_det_valid) begin //case 1, all lanes detect a valid receiver
                       //  detect_subst_nxt = D_ACTIVE;
                         state_nxt = `POLL;
-                        detect_subst_nxt = `D_QUIET;                        
+                        detect_subst_nxt = `D_QUIET;  
+                        pulse_set_nxt = 1'b0;
+                        rx_det_seq_req_nxt = 1'b0;
                     end
                     if(timeout) begin
                         detect_subst_nxt = `D_QUIET;
@@ -150,7 +155,7 @@ always@* begin
                     if(~pulse_set_reg) begin //set timer, generate a single pulse to start counter
                         pulse_set_nxt = 1'b1;
                         cnt_start_nxt = 1'b1;
-                        timeout_val_nxt = 'd24000000; //set as 12us to speed up sim;
+                        timeout_val_nxt = 'd24000; //set as 24us to speed up sim;
                         ts_info_nxt = {4'b0001,4'b0000};
                         ts_update_nxt = 1'b1;
                     end else begin
@@ -160,6 +165,7 @@ always@* begin
 
                     if(tsa_p_a2c) begin
                         poll_subst_nxt = `POLL_CFG;
+                        pulse_set_nxt = 1'b0;                        
                     end
                     if(timeout) begin
                         state_nxt = `DETECT;
