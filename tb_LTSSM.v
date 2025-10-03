@@ -7,6 +7,8 @@ reg rst;
 
 initial begin
     #0 clk = 1'b0;
+       rst = 1'b0;
+    #10
        rst = 1'b1;
     #100
        rst = 1'b0;
@@ -67,6 +69,7 @@ wire        lane3_idel_break;
 
 
 
+
 LTSSM LTSSM_DSP(
     .clk                        (  clk   ),
     .rst				        (  rst   ),
@@ -76,10 +79,10 @@ LTSSM LTSSM_DSP(
     .lane2_rx_det				( 1'b1   ),
     .lane3_rx_det				( 1'b1   ),
 
-    .lane0_idel_break			( 1'b1   ),
-    .lane1_idel_break			( 1'b1   ),
-    .lane2_idel_break			( 1'b1   ),
-    .lane3_idel_break			( 1'b1   ),
+    .lane0_idel_break			( lane0_idel_break  ),
+    .lane1_idel_break			( lane1_idel_break  ),
+    .lane2_idel_break			( lane2_idel_break  ),
+    .lane3_idel_break			( lane3_idel_break  ),
 
     .lane0_rx_det_seq_req		(dsp_lane0_rx_det    ),
     .lane1_rx_det_seq_req		(dsp_lane1_rx_det    ),
@@ -93,9 +96,9 @@ LTSSM LTSSM_DSP(
 
     .lane0_ts_i				    (  usp_lane0_ts       ),
     .lane0_ts_i_vld				(  usp_lane0_ts_vld   ),
-    .lane0_ts_o			    	(  dsp_lane0_ts     ),
-    .lane0_ts_o_vld				(  dsp_lane0_ts_vld ),
-    .lane1_ts_i				    (  usp_lane1_ts      ),
+    .lane0_ts_o			    	(  dsp_lane0_ts       ),
+    .lane0_ts_o_vld				(  dsp_lane0_ts_vld   ),
+    .lane1_ts_i				    (  usp_lane1_ts       ),
     .lane1_ts_i_vld				(  usp_lane1_ts_vld  ),
     .lane1_ts_o				    (  dsp_lane1_ts      ),
     .lane1_ts_o_vld				(  dsp_lane1_ts_vld  ),
@@ -107,18 +110,50 @@ LTSSM LTSSM_DSP(
     .lane3_ts_i_vld				(  usp_lane3_ts_vld  ),
     .lane3_ts_o				    (  dsp_lane3_ts      ),
     .lane3_ts_o_vld				(  dsp_lane3_ts_vld  ),
-    .linkup                     (    )
+    .linkup                     (                    )
 );
 
 
 delay_shim #(
     .WIDTH(1),
     .DELAY_CYCLES(500)  // 500 clock cycles delay
-) elec_idle_break_delay (
+) lane0_elec_idle_break_delay (
     .clk    (clk),
-    .in_sig (usp_lane0_rx_det),
-    .out_sig(dsp_lane0_rx_det)
+    .rst    (rst),    
+    .in_sig (1'b1),
+    .out_sig(lane0_idel_break)
 );
+
+delay_shim #(
+    .WIDTH(1),
+    .DELAY_CYCLES(500)  // 500 clock cycles delay
+) lane1_elec_idle_break_delay (
+    .clk    (clk),
+    .rst    (rst),    
+    .in_sig (1'b1),
+    .out_sig(lane1_idel_break)
+);
+
+delay_shim #(
+    .WIDTH(1),
+    .DELAY_CYCLES(500)  // 500 clock cycles delay
+) lane2_elec_idle_break_delay (
+    .clk    (clk),
+    .rst    (rst),    
+    .in_sig (1'b1),
+    .out_sig(lane2_idel_break)
+);
+
+delay_shim #(
+    .WIDTH(1),
+    .DELAY_CYCLES(500)  // 500 clock cycles delay
+) lane3_elec_idle_break_delay (
+    .clk    (clk),
+    .rst    (rst),
+    .in_sig (1'b1),
+    .out_sig(lane3_idel_break)
+);
+
 
 
 
@@ -131,10 +166,10 @@ LTSSM LTSSM_USP(
     .lane2_rx_det				(1'b1    ),
     .lane3_rx_det				(1'b1    ),
 
-    .lane0_idel_break			(1'b1    ),
-    .lane1_idel_break			(1'b1    ),
-    .lane2_idel_break			(1'b1    ),
-    .lane3_idel_break			(1'b1    ),
+    .lane0_idel_break			( lane0_idel_break  ),
+    .lane1_idel_break			( lane1_idel_break  ),
+    .lane2_idel_break			( lane2_idel_break  ),
+    .lane3_idel_break			( lane3_idel_break  ),
 
     .lane0_rx_det_seq_req		(usp_lane0_rx_det    ),
     .lane1_rx_det_seq_req		(usp_lane1_rx_det    ),
