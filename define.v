@@ -23,8 +23,8 @@
 `define D_ACTIVE            2'b01
 `define D_QUIET             2'b00
 
-`define POLL_ACTIVE         2'b01 
-`define POLL_CFG            2'b00
-`define POLL_SPEED          2'b10
-`define POLL_COMP           2'b11
+`define POLL_ACTIVE         4'b0000 
+`define POLL_CFG            4'b0001
+`define POLL_SPEED          4'b0010
+`define POLL_COMP           4'b0011
 

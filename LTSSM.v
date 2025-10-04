@@ -91,13 +91,15 @@ wire[3:0]   w_lanes_rx_det;
 assign      w_lanes_rx_det = {lane3_rx_det, lane2_rx_det, lane1_rx_det, lane0_rx_det} ;
 
 wire[7:0]   w_ts_info;
-wire        w_ts_start;
+wire        w_ts_update;
+wire[3:0]   w_ts_update_ack;
 
 ts_gen ts_gen_u0(
    .clk                             (clk), //1GHz sys clock.
    .rst                             (rst),
    .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
    .ts_update                       (w_ts_update),
+   .ts_update_ack                   (w_ts_update_ack[0]),   
    .ts_stop                         (ts_stop),    
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane0_ts_o_vld),
@@ -110,6 +112,7 @@ ts_gen ts_gen_u1(
    .rst                             (rst),
    .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
    .ts_update                       (w_ts_update),
+   .ts_update_ack                   (w_ts_update_ack[1]), 
    .ts_stop                         (ts_stop),    
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane1_ts_o_vld),
@@ -122,6 +125,7 @@ ts_gen ts_gen_u2(
    .rst                             (rst),
    .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
    .ts_update                       (w_ts_update),
+   .ts_update_ack                   (w_ts_update_ack[2]),
    .ts_stop                         (ts_stop),    
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane2_ts_o_vld),
@@ -134,6 +138,7 @@ ts_gen ts_gen_u3(
    .rst                             (rst),
    .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
    .ts_update                       (w_ts_update),
+   .ts_update_ack                   (w_ts_update_ack[3]),
    .ts_stop                         (ts_stop),    
    .to_tsa_ts_sent_enough           (),
    .ts_valid                        (lane3_ts_o_vld),
@@ -151,6 +156,7 @@ core_fsm core_fsm_u(
 
     .ts_info                        (w_ts_info), //state:[7:4] sub_state[3:0]
     .ts_update                      (w_ts_update),
+    .ts_update_ack                  (w_ts_update_ack),
     .ts_stop                        (w_ts_stop),
     
     .curr_speed                     (curr_speed),

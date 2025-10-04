@@ -5,6 +5,7 @@ module ts_gen(
     input                rst,
     input[7:0]           ts_info, //state:[7:4] sub_state[3:0]
     input                ts_update,
+    output               ts_update_ack,
     input                ts_stop,    
     input                speed,
     output               to_tsa_ts_sent_enough,
@@ -33,6 +34,8 @@ reg[7:0] symbol_reg[0:15];
 reg to_tsa_ts_sent_enough_nxt, to_tsa_ts_sent_enough_reg;
 assign to_tsa_ts_sent_enough = to_tsa_ts_sent_enough_reg;
 reg ts_valid_nxt, ts_valid_reg;
+reg ts_update_ack_nxt, ts_update_ack_reg;
+assign ts_update_ack = ts_update_ack_reg;
 
 assign ts = ts_reg;
 assign ts_valid = ts_valid_reg;
@@ -89,19 +92,23 @@ always@(posedge clk) begin
         target_reg <= 0;
         to_tsa_ts_sent_enough_reg <= 0;
         ts_valid_reg <= 1'b0;
+        ts_update_ack_reg <= 1'b0;
     end else begin
         state_reg <= state_nxt;
         cnt_reg <= cnt_nxt;
         target_reg <= target_nxt;
         to_tsa_ts_sent_enough_reg <= to_tsa_ts_sent_enough_nxt;
         ts_valid_reg <= ts_valid_nxt ;
+        ts_update_ack_reg <= ts_update_ack_nxt;
     end
 end
 
 always@* begin
     state_nxt = state_reg;
     target_nxt = target_reg;
-    ts_valid_nxt = ts_valid_reg;
+    ts_valid_nxt = ts_valid_reg; 
+    to_tsa_ts_sent_enough_nxt = to_tsa_ts_sent_enough_reg;
+    ts_update_ack_nxt = ts_update_ack_reg;
     for(i=0;i<16;i=i+1) begin
         symbol_nxt[i] = symbol_reg[i]; 
     end
@@ -110,6 +117,7 @@ always@* begin
         2'b00: begin // await TS signal
             if(ts_update) begin
                 state_nxt = 2'b01; //transmit active
+                ts_update_ack_nxt = 1'b1;
                 if(curr_state == `POLL ) begin
                     symbol_nxt[0]  = `COM;
                     symbol_nxt[1]  = `PADG12;
@@ -133,6 +141,7 @@ always@* begin
         end
 
         2'b01: begin //transmitting state
+            ts_update_ack_nxt = 1'b0;
             if(cnt_reg >= target_reg) begin //at least 1024 TS1s transmitted
                 to_tsa_ts_sent_enough_nxt = 1'b1;
             end
@@ -143,7 +152,7 @@ always@* begin
                 ts_valid_nxt = 1'b0;
             end
 
-            if(ts_update) begin //better assert two cycles. yes.
+            if(ts_update & ~ts_update_ack_reg ) begin // this is new update
                 state_nxt = 2'b00;
             end
         end
