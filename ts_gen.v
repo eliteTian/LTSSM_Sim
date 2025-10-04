@@ -156,7 +156,7 @@ always@* begin
             if(ts_update & ~ts_update_ack_reg ) begin // this is new update
                 state_nxt = 2'b00;
                 ts_update_ack_nxt = 1'b1;
-
+                cnt_nxt = 0;
             end
         end
         

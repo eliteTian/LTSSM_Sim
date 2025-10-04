@@ -146,17 +146,15 @@ always@* begin
             if(remote_ts_valid) begin
                 cnt_nxt = remote_ts == ts_reg ? cnt_reg + 1: cnt_reg;
             end
-
-            if(cnt_reg >= target_reg && to_tsa_ts_sent_enough ) begin //at least 1024 TS1s transmitted
-                tsa_p_a2c_reg = {curr_state,curr_sub_st}=={`POLL,`POLL_ACTIVE} ;
-                tsa_p2c_reg = {curr_state,curr_sub_st}=={`POLL,`POLL_CFG} ;
-            end
-            
             if(ts_update & ~ts_update_ack_reg ) begin // this is new update
                 state_nxt = 2'b00;
                 ts_update_ack_nxt = 1'b1;  
                 cnt_nxt = 0;
+            end else if(cnt_reg >= target_reg && to_tsa_ts_sent_enough ) begin //at least 1024 TS1s transmitted
+                tsa_p_a2c_nxt = {curr_state,curr_sub_st}=={`POLL,`POLL_ACTIVE} ;
+                tsa_p2c_nxt = {curr_state,curr_sub_st}=={`POLL,`POLL_CFG} ;
             end
+
 
         end
 

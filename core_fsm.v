@@ -119,7 +119,7 @@ always@* begin
                         cnt_start_nxt = 1'b0;
                     end
 
-                    if(|elec_idle_break || timeout) begin
+                    if(|elec_idle_break || timeout) begin //@PCIe Gen5 Spec. 4.2.6.1.1 Detect.Quiet
                         detect_subst_nxt = `D_ACTIVE;
                         pulse_set_nxt = 1'b0;
                         rx_det_seq_req_nxt = 4'hF;
@@ -136,13 +136,20 @@ always@* begin
 
                     rx_det_seq_req_nxt = &rx_det_seq_ack ?  4'h0: rx_det_seq_req_reg ;
 
-                    if(&rx_det_valid) begin //case 1, all lanes detect a valid receiver
-                      //  detect_subst_nxt = D_ACTIVE;
+                    if(&rx_det_valid) begin //case 1, @PCIe Gen5 Spec. all lanes detect a valid receiver 4.2.6.1.2 Detect.Active
                         state_nxt = `POLL;
                         detect_subst_nxt = `D_QUIET;  
                         pulse_set_nxt = 1'b0;
                         rx_det_seq_req_nxt = 1'b0;
                     end
+
+                    if(~&rx_det_valid) begin //case 2, @PCIe Gen5 Spec. no lanes detect a valid receiver 4.2.6.1.2 Detect.Active
+                        state_nxt = `DETECT;
+                        detect_subst_nxt = `D_QUIET;  
+                        pulse_set_nxt = 1'b0;
+                        rx_det_seq_req_nxt = 1'b0;
+                    end
+                                            //cas3 3 to implement.
                     if(timeout) begin
                         detect_subst_nxt = `D_QUIET;
                     end
@@ -158,7 +165,6 @@ always@* begin
                         cnt_start_nxt = 1'b1;
                         timeout_val_nxt = 'd24000; //set as 24us to speed up sim;
                         ts_info_nxt = {`POLL,`POLL_ACTIVE};//ts_info_nxt = {4'b0001,4'b0000};// ts_info_nxt = {`POLL,`POLL_ACTIVE};
-
                         ts_update_nxt = 1'b1;
                     end else begin
                         cnt_start_nxt = 1'b0;
@@ -177,8 +183,7 @@ always@* begin
                     if(~pulse_set_reg) begin //set timer, generate a single pulse to start counter
                         pulse_set_nxt = 1'b1;
                         cnt_start_nxt = 1'b1;
-                        timeout_val_nxt = 'd24000000; //set as 12us to speed up sim;
-                        //ts_info_nxt = {4'b0001,4'b0001};
+                        timeout_val_nxt = 'd24000; //set as 12us to speed up sim;
                         ts_info_nxt = {`POLL,`POLL_CFG};
                         ts_update_nxt = 1'b1;
                     end else begin
@@ -187,8 +192,12 @@ always@* begin
                     end
 
                     if(tsa_p2c) begin
-                        poll_subst_nxt = `CFG;
-
+                        state_nxt = `CFG;
+                        poll_subst_nxt = `POLL_ACTIVE;
+                        pulse_set_nxt = 1'b0;
+                    end
+                    if(timeout) begin
+                        state_nxt = `DETECT;
                     end
                 end
             endcase
