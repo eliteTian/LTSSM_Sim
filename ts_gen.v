@@ -118,6 +118,7 @@ always@* begin
             if(ts_update) begin
                 state_nxt = 2'b01; //transmit active
                 ts_update_ack_nxt = 1'b1;
+                to_tsa_ts_sent_enough_nxt = 1'b0;
                 if(curr_state == `POLL ) begin
                     symbol_nxt[0]  = `COM;
                     symbol_nxt[1]  = `PADG12;
@@ -135,7 +136,7 @@ always@* begin
                     symbol_nxt[13] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
                     symbol_nxt[14] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
                     symbol_nxt[15] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    target_nxt     = curr_sub_st == `POLL_ACTIVE ? `NUM_POLL_ACT2CFG: `NUM_POLL2CFG ;
+                    target_nxt     = curr_sub_st == `POLL_ACTIVE ? `TX_NUM_POLL_ACT2CFG: `TX_NUM_POLL2CFG ;
                 end
             end
         end
@@ -154,6 +155,8 @@ always@* begin
 
             if(ts_update & ~ts_update_ack_reg ) begin // this is new update
                 state_nxt = 2'b00;
+                ts_update_ack_nxt = 1'b1;
+
             end
         end
         

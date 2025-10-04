@@ -183,11 +183,11 @@ always@* begin
                         ts_update_nxt = 1'b1;
                     end else begin
                         cnt_start_nxt = 1'b0;
-                        ts_update_nxt = 1'b0;
+                        ts_update_nxt = &ts_update_ack? 1'b0 :ts_update_reg ;
                     end
 
                     if(tsa_p2c) begin
-                        poll_subst_nxt = `POLL_CFG;
+                        poll_subst_nxt = `CFG;
 
                     end
                 end
