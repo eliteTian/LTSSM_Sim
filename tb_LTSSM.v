@@ -129,7 +129,7 @@ wire        dsp_lane3_fifo_busy;
 LTSSM LTSSM_DSP(
     .clk                        (  clk   ),
     .rst				        (  rst   ),
-
+    .mode                       (  `DSP  ),
     .lane0_rx_det				( dsp_lane0_rx_det_vld  ),
     .lane1_rx_det				( dsp_lane1_rx_det_vld  ),
     .lane2_rx_det				( dsp_lane2_rx_det_vld  ),
@@ -354,6 +354,7 @@ rx_det_circuit#(
 LTSSM LTSSM_USP(
     .clk                        ( clk     ), 
     .rst				        ( rst     ),
+    .mode                       (  `USP  ),
     
     .lane0_rx_det				( usp_lane0_rx_det_vld    ),
     .lane1_rx_det				( usp_lane1_rx_det_vld    ),

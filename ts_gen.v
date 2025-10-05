@@ -8,6 +8,8 @@ module ts_gen(
     output               ts_update_ack,
     input                ts_stop,    
     input                speed,
+    input                mode,
+    input[3:0]           lane_num,
     output               to_tsa_ts_sent_enough,
     output               ts_valid,
     output[127:0]        ts,
@@ -41,7 +43,7 @@ assign ts = ts_reg;
 assign ts_valid = ts_valid_reg;
 
 
-wire ts_reg = {
+wire[127:0] ts_reg = {
         symbol_reg[0],
         symbol_reg[1],
         symbol_reg[2],
@@ -126,17 +128,35 @@ always@* begin
                     symbol_nxt[3]  = 8'hFF;
                     symbol_nxt[4]  = {2'b00,rate_support};
                     symbol_nxt[5]  = 8'h00;
-                    symbol_nxt[6]  = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[7]  = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[8]  = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[9]  = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[10] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[11] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[12] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[13] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[14] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
-                    symbol_nxt[15] = curr_sub_st == `POLL_ACTIVE ? `D10_2 : `D5_2;
+                    symbol_nxt[6]  = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[7]  = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[8]  = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[9]  = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[10] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[11] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[12] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[13] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[14] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    symbol_nxt[15] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
                     target_nxt     = curr_sub_st == `POLL_ACTIVE ? `TX_NUM_POLL_ACT2CFG: `TX_NUM_POLL2CFG ;
+                end else if(curr_state == `CFG ) begin
+                    symbol_nxt[0]  = `COM;
+                    symbol_nxt[1]  =  mode==`USP? `PADG12 : `LINK_NUM;
+                    symbol_nxt[2]  = `PADG12;
+                    symbol_nxt[3]  = 8'hFF;
+                    symbol_nxt[4]  = {2'b00,rate_support};
+                    symbol_nxt[5]  = 8'h00;
+                    symbol_nxt[6]  = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[7]  = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[8]  = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[9]  = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[10] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[11] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[12] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[13] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[14] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    symbol_nxt[15] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
+                    target_nxt     = curr_sub_st == `CFG_LW_START ? `RX_NUM_POLL_ACT2CFG: curr_sub_st == `CFG_COMPLETE ? `RX_NUM_CFG_C2I : `RX_NUM_CFG_GENERAL ;
                 end
             end
         end
@@ -157,6 +177,7 @@ always@* begin
                 state_nxt = 2'b00;
                 ts_update_ack_nxt = 1'b1;
                 cnt_nxt = 0;
+                to_tsa_ts_sent_enough_nxt = 1'b0;
             end
         end
         

@@ -33,6 +33,7 @@ Gen5: 32.0Gx(128/130) = 32Gbps(neglecting encoding): coming at 1 valid/ 128/32=4
 module LTSSM(
     input            clk, //1GHz sys clock.
     input            rst,
+    input            mode, //0:DSP, 1:USP
     //RX detect
     input            lane0_rx_det,
     input            lane1_rx_det,
@@ -111,6 +112,11 @@ wire    lane1_tsa_p2c;
 wire    lane2_tsa_p2c;
 wire    lane3_tsa_p2c;
 
+wire    lane3_tsa_c_lw_s2a;
+wire    lane2_tsa_c_lw_s2a;
+wire    lane1_tsa_c_lw_s2a;
+wire    lane0_tsa_c_lw_s2a;
+  
 
 ts_gen ts_gen_u0(
    .clk                             (clk), //1GHz sys clock.
@@ -118,7 +124,9 @@ ts_gen ts_gen_u0(
    .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
    .ts_update                       (w_ts_update),
    .ts_update_ack                   (w_ts_update_ack_tx[0]),   
-   .ts_stop                         (ts_stop),    
+   .ts_stop                         (ts_stop),
+   .lane_num                        (4'b0001),
+   .mode                            (mode),
    .to_tsa_ts_sent_enough           (lane0_sent_enough),
    .ts_valid                        (lane0_ts_o_vld),
    .ts                              (lane0_ts_o),
@@ -133,10 +141,13 @@ tsa u_tsa_u0 (
     .ts_update_ack                  (w_ts_update_ack_rx[0]),
     .ts_stop                        (ts_stop),
     .speed                          (speed),
+    .lane_num                       (4'b0001),
+    .mode                           (mode),
     .to_tsa_ts_sent_enough          (lane0_sent_enough), // controller info per substate
     .remote_ts_valid                (lane0_ts_i_vld), 
     .remote_ts                      (lane0_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane0_tsa_p_a2c),
+    .tsa_c_lw_s2a                   (lane0_tsa_c_lw_s2a),    
     .tsa_p2c                        (lane0_tsa_p2c)
     
 );
@@ -148,6 +159,8 @@ ts_gen ts_gen_u1(
    .ts_update                       (w_ts_update),
    .ts_update_ack                   (w_ts_update_ack_tx[1]), 
    .ts_stop                         (ts_stop),    
+   .lane_num                        (4'b0010), 
+   .mode                            (mode),  
    .to_tsa_ts_sent_enough           (lane1_sent_enough),
    .ts_valid                        (lane1_ts_o_vld),
    .ts                              (lane1_ts_o),
@@ -161,11 +174,14 @@ tsa u_tsa_u1 (
     .ts_update                      (w_ts_update),
     .ts_update_ack                  (w_ts_update_ack_rx[1]),
     .ts_stop                        (ts_stop),
+    .lane_num                       (4'b0010),
+    .mode                           (mode),   
     .speed                          (speed),
     .to_tsa_ts_sent_enough          (lane1_sent_enough), // controller info per substate
     .remote_ts_valid                (lane1_ts_i_vld),
     .remote_ts                      (lane1_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane1_tsa_p_a2c),
+    .tsa_c_lw_s2a                   (lane1_tsa_c_lw_s2a),    
     .tsa_p2c                        (lane1_tsa_p2c)
     
 );
@@ -177,6 +193,8 @@ ts_gen ts_gen_u2(
    .ts_update                       (w_ts_update),
    .ts_update_ack                   (w_ts_update_ack_tx[2]),
    .ts_stop                         (ts_stop),    
+   .lane_num                        (4'b0100),   
+   .mode                            (mode),
    .to_tsa_ts_sent_enough           (lane2_sent_enough),
    .ts_valid                        (lane2_ts_o_vld),
    .ts                              (lane2_ts_o),
@@ -190,11 +208,14 @@ tsa u_tsa_u2 (
     .ts_update                      (w_ts_update),
     .ts_update_ack                  (w_ts_update_ack_rx[2]),
     .ts_stop                        (ts_stop),
+    .lane_num                       (4'b0100),
+    .mode                           (mode),
     .speed                          (speed),
     .to_tsa_ts_sent_enough          (lane2_sent_enough), // controller info per substate
     .remote_ts_valid                (lane2_ts_i_vld),
     .remote_ts                      (lane2_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane2_tsa_p_a2c),
+    .tsa_c_lw_s2a                   (lane2_tsa_c_lw_s2a),    
     .tsa_p2c                        (lane2_tsa_p2c)
     
 );
@@ -205,7 +226,9 @@ ts_gen ts_gen_u3(
    .ts_info                         (w_ts_info), //state:[7:4] sub_state[3:0]
    .ts_update                       (w_ts_update),
    .ts_update_ack                   (w_ts_update_ack_tx[3]),
-   .ts_stop                         (ts_stop),    
+   .ts_stop                         (ts_stop),
+   .lane_num                        (4'b1000),
+   .mode                            (mode),
    .to_tsa_ts_sent_enough           (lane3_sent_enough),
    .ts_valid                        (lane3_ts_o_vld),
    .ts                              (lane3_ts_o),
@@ -220,17 +243,20 @@ tsa u_tsa_u3 (
     .ts_update_ack                  (w_ts_update_ack_rx[3]),
     .ts_stop                        (ts_stop),
     .speed                          (speed),
+    .lane_num                       (4'b1000),
+    .mode                           (mode),
     .to_tsa_ts_sent_enough          (lane3_sent_enough), // controller info per substate
     .remote_ts_valid                (lane3_ts_i_vld),
     .remote_ts                      (lane3_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane3_tsa_p_a2c),
+    .tsa_c_lw_s2a                   (lane3_tsa_c_lw_s2a),
     .tsa_p2c                        (lane3_tsa_p2c)
-    
 );
 
 core_fsm core_fsm_u(
     .clk                            (clk), //1GHz sys clock.
     .rst                            (rst),
+    .mode                           (mode),
     .elec_idle_break                (w_elec_idle_brk),
     .rx_det_seq_req                 (w_rx_det_seq_req),
     .rx_det_seq_ack                 (w_rx_det_seq_ack),
@@ -242,8 +268,9 @@ core_fsm core_fsm_u(
     .ts_stop                        (w_ts_stop),
     
     .curr_speed                     (curr_speed),
-    .tsa_p2c                        (lane3_tsa_p2c & lane2_tsa_p2c & lane1_tsa_p2c & lane0_tsa_p2c),
-    .tsa_p_a2c                      (lane3_tsa_p_a2c & lane2_tsa_p_a2c & lane1_tsa_p_a2c & lane0_tsa_p_a2c)
+    .tsa_p2c                        ({lane3_tsa_p2c , lane2_tsa_p2c , lane1_tsa_p2c , lane0_tsa_p2c}),
+    .tsa_c_lw_s2a                   ({lane3_tsa_c_lw_s2a , lane2_tsa_c_lw_s2a , lane1_tsa_c_lw_s2a , lane0_tsa_c_lw_s2a}),
+    .tsa_p_a2c                      ({lane3_tsa_p_a2c , lane2_tsa_p_a2c , lane1_tsa_p_a2c , lane0_tsa_p_a2c})
 );
 
 endmodule
