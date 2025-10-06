@@ -1,5 +1,9 @@
 `timescale 1ns/100ps
 `include "define.v"
+//Descripton:
+//TS receiver and analyzer. It gets instructions from FSM
+//to expect certain TSs. It also alerts TSG to change symbol
+//It also generates state transition signals for FSM.
 module tsa(
     input                clk, //1GHz sys clock.
     input                rst,
@@ -11,11 +15,21 @@ module tsa(
     input                mode,
     input[3:0]           lane_num,
     input                to_tsa_ts_sent_enough, //each substate, the controllers knows how many
+    
+    output[7:0]          to_tsg_rcv_link_num, //for usp
+    output               to_tsg_rcv_link_num_vld,
+    output[7:0]          to_tsg_rcv_lane_num, //for usp
+    output               to_tsg_rcv_lane_num_vld,
+    
+    input                from_tsg_update_ack,
+
+
+
     input                remote_ts_valid,
     input[127:0]         remote_ts,
     output               tsa_p_a2c,
     output               tsa_p2c,
-    output               tsa_c_lw_s2a
+    output               tsa_c_ws2wa
     
 );
 
@@ -43,20 +57,46 @@ wire[3:0] curr_sub_st = ts_info[3:0];
 reg[15:0] cnt_nxt, cnt_reg;
 reg[15:0] target_nxt, target_reg;
 
+reg[127:0] symbol_mask_nxt, symbol_mask_reg;
+
 reg tsa_p_a2c_nxt, tsa_p_a2c_reg;
 assign tsa_p_a2c = tsa_p_a2c_reg;
 
 reg tsa_p2c_nxt, tsa_p2c_reg;
 assign tsa_p2c = tsa_p2c_reg;
 
-reg tsa_c_lw_s2a_nxt, tsa_c_lw_s2a_reg;
-assign tsa_c_lw_s2a = tsa_c_lw_s2a_reg;
+reg tsa_c_ws2wa_nxt, tsa_c_ws2wa_reg;
+assign tsa_c_ws2wa = tsa_c_ws2wa_reg;
+
+reg to_tsg_rcv_link_num_nxt, to_tsg_rcv_link_num_reg;
+assign to_tsg_rcv_link_num = to_tsg_rcv_link_num_reg;
+
+reg to_tsg_rcv_link_num_vld_nxt, to_tsg_rcv_link_num_vld_reg;
+assign to_tsg_rcv_link_vld_num = to_tsg_rcv_link_num_vld_reg;
+
 
 
 reg ts_update_ack_nxt, ts_update_ack_reg;
 assign ts_update_ack = ts_update_ack_reg;
 integer i;
 wire[5:0]   rate_support = `RATE_SUPPORT;
+
+wire [7:0] symbol0  = remote_ts[127:120];
+wire [7:0] symbol1  = remote_ts[119:112];
+wire [7:0] symbol2  = remote_ts[111:104];
+wire [7:0] symbol3  = remote_ts[103:96];
+wire [7:0] symbol4  = remote_ts[95:88];
+wire [7:0] symbol5  = remote_ts[87:80];
+wire [7:0] symbol6  = remote_ts[79:72];
+wire [7:0] symbol7  = remote_ts[71:64];
+wire [7:0] symbol8  = remote_ts[63:56];
+wire [7:0] symbol9  = remote_ts[55:48];
+wire [7:0] symbol10 = remote_ts[47:40];
+wire [7:0] symbol11 = remote_ts[39:32];
+wire [7:0] symbol12 = remote_ts[31:24];
+wire [7:0] symbol13 = remote_ts[23:16];
+wire [7:0] symbol14 = remote_ts[15:8];
+wire [7:0] symbol15 = remote_ts[7:0];
 
 wire[127:0] ts_reg = {
         symbol_reg[0],
@@ -85,7 +125,10 @@ always@(posedge clk) begin
         ts_update_ack_reg <= 1'b0;     
         tsa_p_a2c_reg <= 0; 
         tsa_p2c_reg <= 0; 
-        tsa_c_lw_s2a_reg <= 0;
+        tsa_c_ws2wa_reg <= 0;
+        symbol_mask_reg <= 0;
+        to_tsg_rcv_link_num_vld_reg <= 0;
+        to_tsg_rcv_link_num_reg <= 0;
     end else begin
         state_reg <= state_nxt;
         cnt_reg <= cnt_nxt;
@@ -93,7 +136,11 @@ always@(posedge clk) begin
         ts_update_ack_reg <= ts_update_ack_nxt;  
         tsa_p_a2c_reg <= tsa_p_a2c_nxt; 
         tsa_p2c_reg <= tsa_p2c_nxt; 
-        tsa_c_lw_s2a_reg <= tsa_c_lw_s2a_nxt;
+        tsa_c_ws2wa_reg <= tsa_c_ws2wa_nxt;
+        symbol_mask_reg <= symbol_mask_nxt;
+        to_tsg_rcv_link_num_vld_reg <= to_tsg_rcv_link_num_vld_nxt;
+        to_tsg_rcv_link_num_reg <= to_tsg_rcv_link_num_nxt;
+        
     end
 end
 
@@ -117,7 +164,10 @@ always@* begin
     ts_update_ack_nxt = ts_update_ack_reg;   
     tsa_p_a2c_nxt = tsa_p_a2c_reg;
     tsa_p2c_nxt = tsa_p2c_reg;
-    tsa_c_lw_s2a_nxt = tsa_c_lw_s2a_reg;
+    tsa_c_ws2wa_nxt = tsa_c_ws2wa_reg;
+    symbol_mask_nxt = symbol_mask_reg;
+    to_tsg_rcv_link_num_vld_nxt = to_tsg_rcv_link_num_vld_reg;
+    to_tsg_rcv_link_num_nxt = to_tsg_rcv_link_num_reg;
     for(i=0;i<16;i=i+1) begin
         symbol_nxt[i] = symbol_reg[i]; 
     end    
@@ -145,10 +195,12 @@ always@* begin
                     symbol_nxt[13] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
                     symbol_nxt[14] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
                     symbol_nxt[15] = curr_sub_st == `POLL_ACTIVE ? `TS1_IDTFR : `TS2_IDTFR;
+                    
+                    symbol_mask_nxt = 128'hFF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF;
+
                 end  else if(curr_state == `CFG ) begin //set expected TS1s
+
                     symbol_nxt[0]  = `COM;
-                    symbol_nxt[1]  =  mode==`DSP? `PADG12 : `LINK_NUM; //If USP, expect LINK_NUM
-                    symbol_nxt[2]  = `PADG12;
                     symbol_nxt[3]  = 8'hFF;
                     symbol_nxt[4]  = {2'b00,rate_support};
                     symbol_nxt[5]  = 8'h00;
@@ -163,24 +215,108 @@ always@* begin
                     symbol_nxt[14] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
                     symbol_nxt[15] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
                     target_nxt     = curr_sub_st == `CFG_LW_START ? `RX_NUM_POLL_ACT2CFG: curr_sub_st == `CFG_COMPLETE ? `RX_NUM_CFG_C2I : `RX_NUM_CFG_GENERAL;
+                    case(curr_sub_st)
+                        `CFG_LW_START: begin
+                            if(mode==`DSP) begin
+                                symbol_mask_nxt = 128'hFF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
+                            end
+                        end
+                        `CFG_LW_ACC: begin
+                            symbol_mask_nxt = 128'hFF_FF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
+
+                        end
+                    endcase
+
                 end 
             end
         end
 
-        2'b01: begin
+        2'b01: begin //Receive ts from partner.
             ts_update_ack_nxt = 1'b0;            
-            if(remote_ts_valid) begin
-                cnt_nxt = remote_ts == ts_reg ? cnt_reg + 1: cnt_reg;
+
+            if(curr_state==`POLL) begin
+                
+                if(remote_ts_valid) begin
+                    //cnt_nxt = remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg ? cnt_reg + 1: cnt_reg;
+                    cnt_nxt = remote_ts == ts_reg ? cnt_reg + 1: cnt_reg;
+                end
+
+                if(ts_update & ~ts_update_ack_reg ) begin // this is new update
+                    state_nxt = 2'b00;
+                    ts_update_ack_nxt = 1'b1;  
+                    cnt_nxt = 0;
+                end else if(cnt_reg >= target_reg && to_tsa_ts_sent_enough || cnt_reg >= target_reg && target_reg <= `RX_NUM_CFG_GENERAL) begin 
+                    tsa_p_a2c_nxt = {curr_state,curr_sub_st}=={`POLL,`POLL_ACTIVE} ;
+                    tsa_p2c_nxt = {curr_state,curr_sub_st}=={`POLL,`POLL_CFG} ;
+                    cnt_nxt = 0;
+                   // tsa_c_ws2wa_nxt = {curr_state,curr_sub_st}=={`CFG,`CFG_LW_START};
+                end
+
             end
-            if(ts_update & ~ts_update_ack_reg ) begin // this is new update
-                state_nxt = 2'b00;
-                ts_update_ack_nxt = 1'b1;  
-                cnt_nxt = 0;
-            end else if(cnt_reg >= target_reg && to_tsa_ts_sent_enough || cnt_reg >= target_reg && target_reg <= `RX_NUM_CFG_GENERAL) begin 
-                tsa_p_a2c_nxt = {curr_state,curr_sub_st}=={`POLL,`POLL_ACTIVE} ;
-                tsa_p2c_nxt = {curr_state,curr_sub_st}=={`POLL,`POLL_CFG} ;
-                tsa_c_lw_s2a_nxt = {curr_state,curr_sub_st}=={`CFG,`CFG_LW_START};
-            end
+                
+            if(curr_state==`CFG) begin
+                //CFG_LW_START:
+                // DSP: The Transmitter sends TS1 Ordered Sets with selected Link numbers and sets Lane numbers to PAD on all the
+                // active Downstream Lane
+                // Transition:
+                //If any Lanes first received at least one or more TS1 Ordered Sets with a Link and Lane number set to PAD, the
+                //next state is Configuration.Linkwidth.Accept immediately after any of those same Downstream Lanes receive
+                //two consecutive TS1 Ordered Sets with a non-PAD Link number that matches any of the transmitted Link
+                //numbers, and with a Lane number set to PAD.
+                
+                // USP:The Transmitter sends out TS1 Ordered Sets with Link numbers and Lane numbers 
+                // set to PAD on all the active Upstream Lanes
+                // Transition
+                //If any Lane receives two consecutive TS1 Ordered Sets with Link numbers that are different than PAD and Lane
+                //number set to PAD, a single Link number is selected and Lane number set to PAD are transmitted on all Lanes
+                //that both detected a Receiver and also received two consecutive TS1 Ordered Sets with Link numbers that are
+                //different than PAD and Lane number set to PAD. Any left over Lanes that detected a Receiver during Detect
+                //must transmit TS1 Ordered Sets with the Link and Lane number set to PAD. The next state is
+                //Configuration.Linkwidth.Accept:
+
+                case(curr_sub_st)
+                    `CFG_LW_START: begin
+                        if(mode==`DSP) begin //DSP RX expect in the beginning link = PAD, and later link = nonPAD, when nonPAD link is received, alerts FSM.
+                            if(remote_ts_valid) begin // TS1 received
+                                if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin // Check if it's a valid TS1
+                                    cnt_nxt = symbol1 ==`LINK_NUM ? cnt_reg + 1 : cnt_reg; //Check if the link num is expected
+                                end
+                            end
+
+                            if(cnt_reg >= target_reg) begin // at least 2 echoed link num received
+                                tsa_c_ws2wa_nxt = 1'b1;
+                            end
+
+
+
+                        end else begin //USP RX expect nonPAD link all the time, if it accepts, alert USP TX to echo nonPAD link.
+                            
+                            if(remote_ts_valid) begin
+                                if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
+                                    cnt_nxt = cnt_reg + 1;
+                                    to_tsg_rcv_link_num_nxt = remote_ts[119:114];
+                                    to_tsg_rcv_link_num_vld_nxt = 1'b1;
+                                end
+                            end
+
+                            if(cnt_reg >= target_reg) begin // at least 2 echoed link num received
+                                tsa_c_ws2wa_nxt = 1'b1;
+                            end
+
+                        end
+                    end
+                endcase
+
+                if(ts_update & ~ts_update_ack_reg ) begin // this is new update
+                    state_nxt = 2'b00;
+                    ts_update_ack_nxt = 1'b1;  
+                    cnt_nxt = 0;
+                end 
+                    
+            end //if(curr_state==`CFG) begin
+
+
+
         end
 
     endcase

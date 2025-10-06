@@ -112,11 +112,31 @@ wire    lane1_tsa_p2c;
 wire    lane2_tsa_p2c;
 wire    lane3_tsa_p2c;
 
-wire    lane3_tsa_c_lw_s2a;
-wire    lane2_tsa_c_lw_s2a;
-wire    lane1_tsa_c_lw_s2a;
-wire    lane0_tsa_c_lw_s2a;
-  
+wire    lane3_tsa_c_ws2wa;
+wire    lane2_tsa_c_ws2wa;
+wire    lane1_tsa_c_ws2wa;
+wire    lane0_tsa_c_ws2wa;
+ 
+wire [7:0] lane0_rcv_link_num;   
+wire       lane0_rcv_link_num_vld;
+wire [7:0] lane0_rcv_lane_num;    
+wire       lane0_rcv_lane_num_vld;
+
+wire [7:0] lane1_rcv_link_num;   
+wire       lane1_rcv_link_num_vld;
+wire [7:0] lane1_rcv_lane_num;    
+wire       lane1_rcv_lane_num_vld;
+
+wire [7:0] lane2_rcv_link_num;   
+wire       lane2_rcv_link_num_vld;
+wire [7:0] lane2_rcv_lane_num;    
+wire       lane2_rcv_lane_num_vld;
+
+wire [7:0] lane3_rcv_link_num;   
+wire       lane3_rcv_link_num_vld;
+wire [7:0] lane3_rcv_lane_num;    
+wire       lane3_rcv_lane_num_vld;
+
 
 ts_gen ts_gen_u0(
    .clk                             (clk), //1GHz sys clock.
@@ -128,6 +148,10 @@ ts_gen ts_gen_u0(
    .lane_num                        (4'b0001),
    .mode                            (mode),
    .to_tsa_ts_sent_enough           (lane0_sent_enough),
+   .from_tsa_rcv_link_num           (lane0_rcv_link_num),
+   .from_tsa_rcv_link_num_vld       (lane0_rcv_link_num_vld),
+   .from_tsa_rcv_lane_num           (lane0_rcv_lane_num),
+   .from_tsa_rcv_lane_num_vld       (lane0_rcv_lane_num_vld),
    .ts_valid                        (lane0_ts_o_vld),
    .ts                              (lane0_ts_o),
    .ts_tx_fifo_full                 (lane0_tx_fifo_full)
@@ -144,10 +168,14 @@ tsa u_tsa_u0 (
     .lane_num                       (4'b0001),
     .mode                           (mode),
     .to_tsa_ts_sent_enough          (lane0_sent_enough), // controller info per substate
+    .to_tsg_rcv_link_num            (lane0_rcv_link_num),
+    .to_tsg_rcv_link_num_vld        (lane0_rcv_link_num_vld),
+    .to_tsg_rcv_lane_num            (lane0_rcv_lane_num),
+    .to_tsg_rcv_lane_num_vld        (lane0_rcv_lane_num_vld),
     .remote_ts_valid                (lane0_ts_i_vld), 
     .remote_ts                      (lane0_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane0_tsa_p_a2c),
-    .tsa_c_lw_s2a                   (lane0_tsa_c_lw_s2a),    
+    .tsa_c_ws2wa                   (lane0_tsa_c_ws2wa),    
     .tsa_p2c                        (lane0_tsa_p2c)
     
 );
@@ -162,6 +190,11 @@ ts_gen ts_gen_u1(
    .lane_num                        (4'b0010), 
    .mode                            (mode),  
    .to_tsa_ts_sent_enough           (lane1_sent_enough),
+   .from_tsa_rcv_link_num           (lane1_rcv_link_num),
+   .from_tsa_rcv_link_num_vld       (lane1_rcv_link_num_vld),
+   .from_tsa_rcv_lane_num           (lane1_rcv_lane_num),
+   .from_tsa_rcv_lane_num_vld       (lane1_rcv_lane_num_vld),
+   
    .ts_valid                        (lane1_ts_o_vld),
    .ts                              (lane1_ts_o),
    .ts_tx_fifo_full                 (lane1_tx_fifo_full)
@@ -178,10 +211,14 @@ tsa u_tsa_u1 (
     .mode                           (mode),   
     .speed                          (speed),
     .to_tsa_ts_sent_enough          (lane1_sent_enough), // controller info per substate
+    .to_tsg_rcv_link_num            (lane1_rcv_link_num),
+    .to_tsg_rcv_link_num_vld        (lane1_rcv_link_num_vld),
+    .to_tsg_rcv_lane_num            (lane1_rcv_lane_num),
+    .to_tsg_rcv_lane_num_vld        (lane1_rcv_lane_num_vld),
     .remote_ts_valid                (lane1_ts_i_vld),
     .remote_ts                      (lane1_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane1_tsa_p_a2c),
-    .tsa_c_lw_s2a                   (lane1_tsa_c_lw_s2a),    
+    .tsa_c_ws2wa                   (lane1_tsa_c_ws2wa),    
     .tsa_p2c                        (lane1_tsa_p2c)
     
 );
@@ -196,6 +233,10 @@ ts_gen ts_gen_u2(
    .lane_num                        (4'b0100),   
    .mode                            (mode),
    .to_tsa_ts_sent_enough           (lane2_sent_enough),
+   .from_tsa_rcv_link_num           (lane2_rcv_link_num),
+   .from_tsa_rcv_link_num_vld       (lane2_rcv_link_num_vld),
+   .from_tsa_rcv_lane_num           (lane2_rcv_lane_num),
+   .from_tsa_rcv_lane_num_vld       (lane2_rcv_lane_num_vld),
    .ts_valid                        (lane2_ts_o_vld),
    .ts                              (lane2_ts_o),
    .ts_tx_fifo_full                 (lane2_tx_fifo_full)
@@ -212,10 +253,14 @@ tsa u_tsa_u2 (
     .mode                           (mode),
     .speed                          (speed),
     .to_tsa_ts_sent_enough          (lane2_sent_enough), // controller info per substate
+    .to_tsg_rcv_link_num            (lane2_rcv_link_num),
+    .to_tsg_rcv_link_num_vld        (lane2_rcv_link_num_vld),
+    .to_tsg_rcv_lane_num            (lane2_rcv_lane_num),
+    .to_tsg_rcv_lane_num_vld        (lane2_rcv_lane_num_vld),
     .remote_ts_valid                (lane2_ts_i_vld),
     .remote_ts                      (lane2_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane2_tsa_p_a2c),
-    .tsa_c_lw_s2a                   (lane2_tsa_c_lw_s2a),    
+    .tsa_c_ws2wa                   (lane2_tsa_c_ws2wa),    
     .tsa_p2c                        (lane2_tsa_p2c)
     
 );
@@ -229,6 +274,10 @@ ts_gen ts_gen_u3(
    .ts_stop                         (ts_stop),
    .lane_num                        (4'b1000),
    .mode                            (mode),
+   .from_tsa_rcv_link_num           (lane3_rcv_link_num),
+   .from_tsa_rcv_link_num_vld       (lane3_rcv_link_num_vld),
+   .from_tsa_rcv_lane_num           (lane3_rcv_lane_num),
+   .from_tsa_rcv_lane_num_vld       (lane3_rcv_lane_num_vld),
    .to_tsa_ts_sent_enough           (lane3_sent_enough),
    .ts_valid                        (lane3_ts_o_vld),
    .ts                              (lane3_ts_o),
@@ -246,10 +295,14 @@ tsa u_tsa_u3 (
     .lane_num                       (4'b1000),
     .mode                           (mode),
     .to_tsa_ts_sent_enough          (lane3_sent_enough), // controller info per substate
+    .to_tsg_rcv_link_num            (lane3_rcv_link_num),
+    .to_tsg_rcv_link_num_vld        (lane3_rcv_link_num_vld),
+    .to_tsg_rcv_lane_num            (lane3_rcv_lane_num),
+    .to_tsg_rcv_lane_num_vld        (lane3_rcv_lane_num_vld),
     .remote_ts_valid                (lane3_ts_i_vld),
     .remote_ts                      (lane3_ts_i),            // 128-bit remote TS
     .tsa_p_a2c                      (lane3_tsa_p_a2c),
-    .tsa_c_lw_s2a                   (lane3_tsa_c_lw_s2a),
+    .tsa_c_ws2wa                    (lane3_tsa_c_ws2wa),
     .tsa_p2c                        (lane3_tsa_p2c)
 );
 
@@ -269,7 +322,7 @@ core_fsm core_fsm_u(
     
     .curr_speed                     (curr_speed),
     .tsa_p2c                        ({lane3_tsa_p2c , lane2_tsa_p2c , lane1_tsa_p2c , lane0_tsa_p2c}),
-    .tsa_c_lw_s2a                   ({lane3_tsa_c_lw_s2a , lane2_tsa_c_lw_s2a , lane1_tsa_c_lw_s2a , lane0_tsa_c_lw_s2a}),
+    .tsa_c_ws2wa                   ({lane3_tsa_c_ws2wa , lane2_tsa_c_ws2wa , lane1_tsa_c_ws2wa , lane0_tsa_c_ws2wa}),
     .tsa_p_a2c                      ({lane3_tsa_p_a2c , lane2_tsa_p_a2c , lane1_tsa_p_a2c , lane0_tsa_p_a2c})
 );
 
