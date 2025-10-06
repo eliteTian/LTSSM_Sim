@@ -69,11 +69,11 @@ reg tsa_c_ws2wa_nxt, tsa_c_ws2wa_reg;
 assign tsa_c_ws2wa = tsa_c_ws2wa_reg;
 
 reg to_tsg_rcv_link_num_nxt, to_tsg_rcv_link_num_reg;
-assign to_tsg_rcv_link_num = to_tsg_rcv_link_num_reg;
 
 reg to_tsg_rcv_link_num_vld_nxt, to_tsg_rcv_link_num_vld_reg;
-assign to_tsg_rcv_link_vld_num = to_tsg_rcv_link_num_vld_reg;
 
+wire [127:0] remote_ts_masked = remote_ts&symbol_mask_reg;
+wire [127:0] ts_reg_masked = ts_reg&symbol_mask_reg;
 
 
 reg ts_update_ack_nxt, ts_update_ack_reg;
@@ -217,13 +217,10 @@ always@* begin
                     target_nxt     = curr_sub_st == `CFG_LW_START ? `RX_NUM_POLL_ACT2CFG: curr_sub_st == `CFG_COMPLETE ? `RX_NUM_CFG_C2I : `RX_NUM_CFG_GENERAL;
                     case(curr_sub_st)
                         `CFG_LW_START: begin
-                            if(mode==`DSP) begin
-                                symbol_mask_nxt = 128'hFF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
-                            end
+                            symbol_mask_nxt = 128'hFF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
                         end
                         `CFG_LW_ACC: begin
                             symbol_mask_nxt = 128'hFF_FF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
-
                         end
                     endcase
 
@@ -278,7 +275,8 @@ always@* begin
                     `CFG_LW_START: begin
                         if(mode==`DSP) begin //DSP RX expect in the beginning link = PAD, and later link = nonPAD, when nonPAD link is received, alerts FSM.
                             if(remote_ts_valid) begin // TS1 received
-                                if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin // Check if it's a valid TS1
+                             //   if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin // Check if it's a valid TS1  
+                                if (ts_reg_masked == remote_ts_masked) begin
                                     cnt_nxt = symbol1 ==`LINK_NUM ? cnt_reg + 1 : cnt_reg; //Check if the link num is expected
                                 end
                             end
@@ -292,9 +290,10 @@ always@* begin
                         end else begin //USP RX expect nonPAD link all the time, if it accepts, alert USP TX to echo nonPAD link.
                             
                             if(remote_ts_valid) begin
-                                if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
+                               // if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
+                                if (ts_reg_masked == remote_ts_masked) begin
                                     cnt_nxt = cnt_reg + 1;
-                                    to_tsg_rcv_link_num_nxt = remote_ts[119:114];
+                                    to_tsg_rcv_link_num_nxt = symbol1;
                                     to_tsg_rcv_link_num_vld_nxt = 1'b1;
                                 end
                             end
@@ -322,6 +321,10 @@ always@* begin
     endcase
 
 end
+
+assign to_tsg_rcv_link_num_vld = to_tsg_rcv_link_num_vld_reg;
+assign to_tsg_rcv_link_num = to_tsg_rcv_link_num_reg;
+
 
 endmodule
             

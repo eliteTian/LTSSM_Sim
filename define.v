@@ -1,5 +1,5 @@
 `define LANE_NUM                4
-`define LINK_NUM                0
+`define LINK_NUM                8'h00
 `define USP                     1'b1
 `define DSP                     1'b0
 

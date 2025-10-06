@@ -209,7 +209,8 @@ always@* begin
                             end
                         end
                         `CFG_LW_ACC: begin
-
+                            symbol_nxt[1]  = from_tsa_rcv_link_num_vld? from_tsa_rcv_link_num: `PADG12;
+                            symbol_nxt[2]  = `PADG12;
                         end
                     endcase
 
