@@ -83,7 +83,7 @@ wire[127:0] ts_reg = {
         symbol_reg[15]};
 
 wire[5:0]   rate_support = `RATE_SUPPORT;
-    
+wire[7:0]   w_lane_num = {4'h0,lane_num};
     
 //state machine sequential logic
 always@(posedge clk) begin
@@ -200,18 +200,49 @@ always@* begin
                     target_nxt     = curr_sub_st == `CFG_LW_START ? `RX_NUM_POLL_ACT2CFG: curr_sub_st == `CFG_COMPLETE ? `RX_NUM_CFG_C2I : `RX_NUM_CFG_GENERAL;
                     case(curr_sub_st)
                         `CFG_LW_START: begin
-                            if(mode==`DSP) begin //DSP, send lind = nonPAD;
+                            if(mode==`DSP) begin //DSP, send link = nonPAD;
                                 symbol_nxt[1]  = `LINK_NUM;
                                 symbol_nxt[2]  = `PADG12;
                             end else begin // USP, initially send link = PAD, then once received link = nonPAD, send nonPAD.
-                                symbol_nxt[1]  = from_tsa_rcv_link_num_vld? from_tsa_rcv_link_num: `PADG12;
+                                symbol_nxt[1]  = `PADG12;
                                 symbol_nxt[2]  = `PADG12;
+
                             end
                         end
                         `CFG_LW_ACC: begin
-                            symbol_nxt[1]  = from_tsa_rcv_link_num_vld? from_tsa_rcv_link_num: `PADG12;
-                            symbol_nxt[2]  = `PADG12;
+                            if(mode==`DSP) begin //DSP, send lane = nonPAD;
+                                symbol_nxt[1]  = `LINK_NUM;
+                                symbol_nxt[2]  = w_lane_num; //each lane has it's own
+                            end else begin
+                                symbol_nxt[1]  =  from_tsa_rcv_link_num_vld? from_tsa_rcv_link_num: `PADG12;                         
+                                symbol_nxt[2]  =  `PADG12;
+                                to_tsa_update_ack_nxt = tsa_update? 1'b1: 1'b0;
+                            end
                         end
+                        `CFG_LN_WAIT: begin
+                            if(mode==`USP) begin
+                                symbol_nxt[1]  = `LINK_NUM;                                
+                                symbol_nxt[2]  = from_tsa_rcv_lane_num_vld? from_tsa_rcv_lane_num: `PADG12;
+                                to_tsa_update_ack_nxt = tsa_update? 1'b1: 1'b0;
+                            end
+                        end
+                        `CFG_LN_ACC: begin
+                            to_tsa_update_ack_nxt = 0;
+                            //check state only, keep what is sending.
+
+
+                        end
+
+                        `CFG_COMPLETE: begin
+                            // keep what is sending but only starting to do
+                            // TS2s.
+                            to_tsa_update_ack_nxt = 0;
+                        end
+
+                        `CFG_IDLE: begin
+                            to_tsa_update_ack_nxt = 0;
+                        end
+                    
                     endcase
 
 
@@ -231,7 +262,7 @@ always@* begin
                 ts_valid_nxt = 1'b0;
             end
 
-            if(ts_update & ~ts_update_ack_reg /*| tsa_update*/ ) begin // there is new update
+            if(ts_update & ~ts_update_ack_reg | tsa_update  ) begin // there is new update
                 state_nxt = 2'b00;
                 ts_update_ack_nxt = 1'b1;
                 cnt_nxt = 0;

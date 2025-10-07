@@ -47,7 +47,6 @@
 `define CFG_LW_ACC              4'b0001
 `define CFG_LN_ACC              4'b0011
 `define CFG_LN_WAIT             4'b0111
-`define CFG_LN_ACC              4'b1111
 `define CFG_COMPLETE            4'b1110
 `define CFG_IDLE                4'b1100
   
