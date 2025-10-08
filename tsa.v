@@ -52,6 +52,8 @@ received enough remote TSs and ready for state transition
 reg[7:0] symbol_nxt[0:15];
 reg[7:0] symbol_reg[0:15];
 
+wire[7:0] w_lane_num = {4'h0,lane_num};
+
 reg[1:0] state_nxt, state_reg;
 wire[3:0] curr_state = ts_info[7:4];
 wire[3:0] curr_sub_st = ts_info[3:0];
@@ -75,8 +77,8 @@ assign tsa_c_wa2nw = tsa_c_wa2nw_reg;
 
 
 
-reg to_tsg_rcv_link_num_nxt, to_tsg_rcv_link_num_reg;
-reg to_tsg_rcv_lane_num_nxt, to_tsg_rcv_lane_num_reg;
+reg [7:0] to_tsg_rcv_link_num_nxt, to_tsg_rcv_link_num_reg;
+reg [7:0] to_tsg_rcv_lane_num_nxt, to_tsg_rcv_lane_num_reg;
 reg to_tsg_rcv_link_num_vld_nxt, to_tsg_rcv_link_num_vld_reg;
 reg to_tsg_rcv_lane_num_vld_nxt, to_tsg_rcv_lane_num_vld_reg;
 
@@ -244,8 +246,10 @@ always@* begin
                     case(curr_sub_st)
                         `CFG_LW_START: begin
                             symbol_mask_nxt = 128'hFF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
+                            symbol_nxt[2]  = `PADG12; //received                           
                         end
                         `CFG_LW_ACC: begin
+                            symbol_nxt[1]  = to_tsg_rcv_link_num_reg; //received
                             symbol_mask_nxt = 128'hFF_FF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
                         end
                         `CFG_LN_WAIT: begin
@@ -325,7 +329,7 @@ always@* begin
                             
                             if(remote_ts_valid) begin
                                // if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
-                                if (ts_reg_masked == remote_ts_masked) begin
+                                if (ts_reg_masked == remote_ts_masked) begin //
                                     cnt_nxt = cnt_reg + 1;
                                     to_tsg_rcv_link_num_nxt = symbol1;
                                     to_tsg_rcv_link_num_vld_nxt = 1'b1;
@@ -353,12 +357,11 @@ always@* begin
                             if(remote_ts_valid) begin
                                // if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
                                 if (ts_reg_masked == remote_ts_masked) begin
-                                    cnt_nxt = cnt_reg + 1;
-                                    to_tsg_rcv_lane_num_nxt = symbol1;
-                                    to_tsg_rcv_lane_num_vld_nxt = 1'b1;
+                                    cnt_nxt = symbol2==w_lane_num? cnt_reg + 1 : cnt_nxt;
+                                    to_tsg_rcv_lane_num_nxt = symbol2;
+                                    to_tsg_rcv_lane_num_vld_nxt = symbol2==w_lane_num? 1'b1 : 1'b0;
                                 end
                             end
-                            to_tsg_rcv_link_num_vld_nxt = from_tsg_update_ack? 1'b0 : to_tsg_rcv_link_num_vld_reg;
 
                             if(cnt_reg >= target_reg) begin // at least 2 echoed link num received
                                 tsa_c_wa2nw_nxt = 1'b1;

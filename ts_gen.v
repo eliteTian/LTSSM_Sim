@@ -215,7 +215,7 @@ always@* begin
                                 symbol_nxt[2]  = w_lane_num; //each lane has it's own
                             end else begin
                                 symbol_nxt[1]  =  from_tsa_rcv_link_num_vld? from_tsa_rcv_link_num: `PADG12;                         
-                                symbol_nxt[2]  =  `PADG12;
+                                symbol_nxt[2]  = from_tsa_rcv_lane_num_vld? from_tsa_rcv_lane_num: `PADG12;
                                 to_tsa_update_ack_nxt = tsa_update? 1'b1: 1'b0;
                             end
                         end
