@@ -95,6 +95,9 @@ reg [7:0] to_tsg_rcv_lane_num_nxt, to_tsg_rcv_lane_num_reg;
 reg to_tsg_rcv_link_num_vld_nxt, to_tsg_rcv_link_num_vld_reg;
 reg to_tsg_rcv_lane_num_vld_nxt, to_tsg_rcv_lane_num_vld_reg;
 
+reg link_num_acquired_nxt, link_num_acquired_reg;
+reg lane_num_acquired_nxt, lane_num_acquired_reg;
+
 
 wire [127:0] remote_ts_masked = remote_ts&symbol_mask_reg;
 wire [127:0] ts_reg_masked = ts_reg&symbol_mask_reg;
@@ -162,6 +165,8 @@ always@(posedge clk) begin
         to_tsg_rcv_link_num_reg <= 0;
         to_tsg_rcv_lane_num_vld_reg <= 0;
         to_tsg_rcv_lane_num_reg <= 0;
+        link_num_acquired_reg <= 0;
+        lane_num_acquired_reg <= 0;      
     end else begin
         state_reg <= state_nxt;
         cnt_reg <= cnt_nxt;
@@ -179,7 +184,9 @@ always@(posedge clk) begin
         to_tsg_rcv_link_num_vld_reg <= to_tsg_rcv_link_num_vld_nxt;
         to_tsg_rcv_link_num_reg <= to_tsg_rcv_link_num_nxt;
         to_tsg_rcv_lane_num_vld_reg <= to_tsg_rcv_lane_num_vld_nxt;
-        to_tsg_rcv_lane_num_reg <= to_tsg_rcv_lane_num_nxt;        
+        to_tsg_rcv_lane_num_reg <= to_tsg_rcv_lane_num_nxt;      
+        link_num_acquired_reg <= link_num_acquired_nxt;
+        lane_num_acquired_reg <= lane_num_acquired_nxt;
     end
 end
 
@@ -336,21 +343,39 @@ always@* begin
 
 
                         end else begin //USP RX expect nonPAD link all the time, if it accepts, alert USP TX to echo nonPAD link.
-                            
-                            if(remote_ts_valid) begin
-                               // if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
-                                if (ts_reg_masked == remote_ts_masked) begin //
-                                    cnt_nxt = cnt_reg + 1;
-                                    to_tsg_rcv_link_num_nxt = symbol1;
-                                    to_tsg_rcv_link_num_vld_nxt = 1'b1;
+                            if(~link_num_acquired_reg) begin//LinkNum Double Handshake: Phase1. Master Req because TSA/master stays in the same state, it needs to add this signal to avoid double handshake.
+                                if(remote_ts_valid) begin //First TS1
+                                    if (ts_reg_masked == remote_ts_masked) begin // 
+                                        cnt_nxt = cnt_reg + 1;
+                                        to_tsg_rcv_link_num_nxt = symbol1;
+                                        to_tsg_rcv_link_num_vld_nxt = 1'b1; //LinkNum Double Handshake: Master req assertion.
+                                        link_num_acquired_nxt = 1'b1;
+                                    end                                     
+                                end
+                            end else begin
+                                to_tsg_rcv_link_num_vld_nxt = from_tsg_update_ack? 1'b0: to_tsg_rcv_link_num_vld_reg; //LinkNum Double Handshake: Phase3. Master Clear Req. Here
+                                //it only generates the deassertion of req, Thus, it only assigns req to 0 or retains what it was. 
+                                //to_tsg_rcv_link_num_vld_nxt = from_tsg_update_ack? 1'b0: 1'b1; <= This is wrong because it does req assertion because it assigns 1 when ack is 
+                                //low, this is logical error as master only
+                                //deassserts req here.
+                                if(remote_ts_valid) begin //subsequent TS1
+                                    if (ts_reg_masked == remote_ts_masked) begin // 
+                                        cnt_nxt = cnt_reg + 1;
+                                    end                                     
                                 end
                             end
-                            //to_tsg_rcv_link_num_vld_nxt = from_tsg_update_ack? 1'b0 : to_tsg_rcv_link_num_vld_reg;
+                                
+                            
+                            //if(to_tsg_rcv_link_num_vld_reg & ~link_num_acquired_reg) begin // received and first time
+                            //    to_tsg_rcv_link_num_vld_nxt = from_tsg_update_ack? 1'b0:to_tsg_rcv_link_num_vld_reg;
+                            //    link_num_acquired_nxt = 1'b1;
+                            //end
+
+                           // to_tsg_rcv_link_num_vld_nxt = from_tsg_update_ack & to_tsg_rcv_link_num_vld_reg? 1'b0 : to_tsg_rcv_link_num_vld_reg; // This doesn't work. take note
 
                             if(cnt_reg >= target_reg) begin // at least 2 echoed link num received
                                 tsa_c_ws2wa_nxt = 1'b1;
                                 cnt_nxt = 0;
-
                             end
 
                             
@@ -364,12 +389,21 @@ always@* begin
                             cnt_nxt = 0;
 
                         end else begin //USP RX expect non PAD lane and start sending back non PAD lane before transition. so transition here is receive nonpad lane
-                            if(remote_ts_valid) begin
-                               // if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin
-                                if (ts_reg_masked == remote_ts_masked) begin
-                                    cnt_nxt = symbol2==w_lane_num? cnt_reg + 1 : cnt_nxt;
-                                    to_tsg_rcv_lane_num_nxt = symbol2;
-                                    to_tsg_rcv_lane_num_vld_nxt = symbol2==w_lane_num? 1'b1 : 1'b0;
+                            if(~lane_num_acquired_reg) begin//LaneNum Double Handshake: Phase1.                             
+                                if(remote_ts_valid) begin
+                                    if (ts_reg_masked == remote_ts_masked) begin
+                                        cnt_nxt = symbol2==w_lane_num? cnt_reg + 1 : cnt_nxt;
+                                        to_tsg_rcv_lane_num_nxt = symbol2;
+                                        to_tsg_rcv_lane_num_vld_nxt = symbol2==w_lane_num? 1'b1 : 1'b0; //Accept here
+                                        lane_num_acquired_nxt = symbol2==w_lane_num? 1'b1 : lane_num_acquired_reg;
+                                    end
+                                end
+                            end else begin
+                                to_tsg_rcv_lane_num_vld_nxt = from_tsg_update_ack? 1'b0: to_tsg_rcv_lane_num_vld_reg; //LaneNum Double Handshake: Phase3. Master Clear Req. Here
+                                if(remote_ts_valid) begin //subsequent TS1
+                                    if (ts_reg_masked == remote_ts_masked) begin // 
+                                        cnt_nxt = cnt_reg + 1;
+                                    end                                     
                                 end
                             end
 
@@ -538,6 +572,9 @@ begin
     to_tsg_rcv_link_num_nxt = to_tsg_rcv_link_num_reg;
     to_tsg_rcv_lane_num_vld_nxt = to_tsg_rcv_lane_num_vld_reg;
     to_tsg_rcv_lane_num_nxt = to_tsg_rcv_lane_num_reg;
+    link_num_acquired_nxt = link_num_acquired_reg;
+    lane_num_acquired_nxt = lane_num_acquired_reg;
+    
     for(i=0;i<16;i=i+1) begin
         symbol_nxt[i] = symbol_reg[i]; 
     end

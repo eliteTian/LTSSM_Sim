@@ -54,6 +54,10 @@ assign to_tsa_ts_sent_enough = to_tsa_ts_sent_enough_reg;
 reg to_tsa_update_ack_nxt, to_tsa_update_ack_reg;
 assign to_tsa_update_ack = to_tsa_update_ack_reg;
 
+reg link_num_acquired_nxt, link_num_acquired_reg;
+reg lane_num_acquired_nxt, lane_num_acquired_reg;
+
+
 
 reg ts_valid_nxt, ts_valid_reg;
 reg ts_update_ack_nxt, ts_update_ack_reg;
@@ -117,6 +121,8 @@ always@(posedge clk) begin
         to_tsa_ts_sent_enough_reg <= 0;        
         ts_valid_reg <= 1'b0;
         ts_update_ack_reg <= 1'b0;
+        link_num_acquired_reg <= 0;
+        lane_num_acquired_reg <= 0;           
     end else begin
         state_reg <= state_nxt;
         cnt_reg <= cnt_nxt;
@@ -125,6 +131,8 @@ always@(posedge clk) begin
         to_tsa_ts_sent_enough_reg <= to_tsa_ts_sent_enough_nxt;        
         ts_valid_reg <= ts_valid_nxt ;
         ts_update_ack_reg <= ts_update_ack_nxt;
+        link_num_acquired_reg <= link_num_acquired_nxt;
+        lane_num_acquired_reg <= lane_num_acquired_nxt;        
     end
 end
 
@@ -135,6 +143,8 @@ always@* begin
     to_tsa_ts_sent_enough_nxt = to_tsa_ts_sent_enough_reg;
     to_tsa_update_ack_nxt = to_tsa_update_ack_reg;    
     ts_update_ack_nxt = ts_update_ack_reg;
+    link_num_acquired_nxt = link_num_acquired_reg;
+    lane_num_acquired_nxt = lane_num_acquired_reg;
     for(i=0;i<16;i=i+1) begin
         symbol_nxt[i] = symbol_reg[i]; 
     end
@@ -144,7 +154,7 @@ always@* begin
             if(ts_update || tsa_update) begin
                 state_nxt = 2'b01; //transmit active
                 ts_update_ack_nxt = ts_update;
-                to_tsa_update_ack_nxt = tsa_update;
+                to_tsa_update_ack_nxt = tsa_update; //LinkNum Double Handshake: Phase4. Slave does deassertion in a new state by following req. It can be explicitly 0.
                 to_tsa_ts_sent_enough_nxt = 1'b0;
                 if(curr_state == `POLL ) begin
                     symbol_nxt[0]  = `COM;
@@ -214,16 +224,14 @@ always@* begin
                                 symbol_nxt[1]  = `LINK_NUM;
                                 symbol_nxt[2]  = w_lane_num; //each lane has it's own
                             end else begin
-                                symbol_nxt[1]  =  from_tsa_rcv_link_num_vld? from_tsa_rcv_link_num: `PADG12;                         
-                                symbol_nxt[2]  = from_tsa_rcv_lane_num_vld? from_tsa_rcv_lane_num: `PADG12;
-                                to_tsa_update_ack_nxt = tsa_update? 1'b1: 1'b0;
+                                symbol_nxt[1]  =  link_num_acquired_reg? from_tsa_rcv_link_num: `PADG12;  //USP accept link num                       
+                                symbol_nxt[2]  =  lane_num_acquired_reg? from_tsa_rcv_lane_num: `PADG12;  //USP accept lane num
                             end
                         end
                         `CFG_LN_WAIT: begin
                             if(mode==`USP) begin
                                 symbol_nxt[1]  = `LINK_NUM;                                
-                                symbol_nxt[2]  = from_tsa_rcv_lane_num_vld? from_tsa_rcv_lane_num: `PADG12;
-                                to_tsa_update_ack_nxt = tsa_update? 1'b1: 1'b0;
+                                symbol_nxt[2]  = lane_num_acquired_reg? from_tsa_rcv_lane_num: `PADG12;
                             end
                         end
                         `CFG_LN_ACC: begin
@@ -252,9 +260,11 @@ always@* begin
 
         2'b01: begin //transmitting state
             ts_update_ack_nxt = 1'b0;
+            to_tsa_update_ack_nxt = 1'b0;
             if(cnt_reg >= target_reg) begin //at least 1024 TS1s transmitted
                 to_tsa_ts_sent_enough_nxt = 1'b1;
             end
+
             if(~ts_tx_fifo_full) begin
                 ts_valid_nxt = 1'b1;
                 cnt_nxt = cnt_reg + 1;
@@ -262,13 +272,22 @@ always@* begin
                 ts_valid_nxt = 1'b0;
             end
 
-            if(ts_update & ~ts_update_ack_reg | tsa_update  ) begin // there is new update
+            if(ts_update & ~ts_update_ack_reg  ) begin // there is new update
                 state_nxt = 2'b00;
                 ts_update_ack_nxt = 1'b1;
                 cnt_nxt = 0;
                 to_tsa_ts_sent_enough_nxt = 1'b0;
             end
             
+            if( tsa_update & ~to_tsa_update_ack_reg ) begin
+                state_nxt = 2'b00;
+                to_tsa_update_ack_nxt = 1'b1; //LinkNum Double Handshake: Slave Ack, because it goes to the next state, next state it awaits req deassertion.
+                cnt_nxt = 0;
+                to_tsa_ts_sent_enough_nxt = 1'b0;
+                link_num_acquired_nxt = from_tsa_rcv_link_num_vld ? 1'b1: link_num_acquired_reg ;
+                lane_num_acquired_nxt = from_tsa_rcv_lane_num_vld ? 1'b1: lane_num_acquired_reg ;
+            end
+
         end
         
     endcase
