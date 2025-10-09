@@ -19,7 +19,10 @@ module core_fsm(
     input[`LANE_NUM-1:0]     tsa_p2c,    //polling to configuration
     input[`LANE_NUM-1:0]     tsa_p_a2c,   //polling active to polling configuration
     input[`LANE_NUM-1:0]     tsa_c_ws2wa,
-    input[`LANE_NUM-1:0]     tsa_c_wa2nw
+    input[`LANE_NUM-1:0]     tsa_c_wa2nw,
+    input[`LANE_NUM-1:0]     tsa_c_nw2na,
+    input[`LANE_NUM-1:0]     tsa_c_na2c,
+    input[`LANE_NUM-1:0]     tsa_c_c2i
 
 
 );
@@ -106,16 +109,7 @@ end
 wire timeout = ~|cnt & ~cnt_start_reg ;
 
 always@* begin
-    state_nxt = state_reg;
-    detect_subst_nxt = detect_subst_reg;
-    poll_subst_nxt = poll_subst_reg;
-    cfg_subst_nxt = cfg_subst_reg;
-    cnt_start_nxt = cnt_start_reg;
-    timeout_val_nxt = timeout_val_reg;
-    pulse_set_nxt = pulse_set_reg;
-    ts_update_nxt = ts_update_reg;
-    ts_info_nxt = ts_info_reg;
-    rx_det_seq_req_nxt = rx_det_seq_req_reg;
+    default_val_init;
     case(state_reg)
         `DETECT: begin
             case(detect_subst_reg)
@@ -242,40 +236,54 @@ always@* begin
                     init_proc({`CFG,`CFG_LN_WAIT},32'd24000);
 
 
-                    //if(&tsa_c_wa2na) begin
-                    //    cfg_subst_nxt = `CFG_LN_ACC;
+                    if(&tsa_c_nw2na) begin
+                        cfg_subst_nxt = `CFG_LN_ACC;
+                        pulse_set_nxt = 1'b0;
+                    end
+                    if(timeout) begin 
+                        state_nxt = `DETECT;
+                    end
+                end
+
+                `CFG_LN_ACC: begin
+                    init_proc({`CFG,`CFG_LN_ACC},32'd24000);
+
+
+                    if(&tsa_c_na2c) begin
+                        cfg_subst_nxt = `CFG_COMPLETE;
+                        pulse_set_nxt = 1'b0;
+                    end
+                    if(timeout) begin 
+                        state_nxt = `DETECT;
+                    end
+                end
+
+                `CFG_COMPLETE: begin
+                    init_proc({`CFG,`CFG_COMPLETE},32'd24000);
+
+
+                    if(&tsa_c_c2i) begin
+                        cfg_subst_nxt = `CFG_IDLE;
+                        pulse_set_nxt = 1'b0;
+                    end
+                    if(timeout) begin 
+                        state_nxt = `DETECT;
+                    end
+                end
+
+                `CFG_IDLE: begin
+                    init_proc({`CFG,`CFG_IDLE},32'd24000);
+                    //if(&tsa_c_c2i) begin
+                    //    cfg_subst_nxt = `CFG_LN_WAIT;
                     //    pulse_set_nxt = 1'b0;
                     //end
                     if(timeout) begin 
                         state_nxt = `DETECT;
                     end
                 end
-
-
-
-
-                //`CFG_COMPLETE: begin
-                //    init_proc({`CFG,`CFG_LW_ACC},32'd24000);
-
-
-                //    if(&tsa_c_wa2na) begin
-                //        cfg_subst_nxt = `CFG_LN_WAIT;
-                //        pulse_set_nxt = 1'b0;
-                //    end
-                //    if(timeout) begin 
-                //        state_nxt = `DETECT;
-                //    end
-                //end
-
-
-
-
-
+                
 
             endcase
-
-
-
         end
         
     endcase
@@ -299,6 +307,24 @@ begin
     end
 end
 endtask
+
+
+
+task default_val_init;
+begin
+    state_nxt = state_reg;
+    detect_subst_nxt = detect_subst_reg;
+    poll_subst_nxt = poll_subst_reg;
+    cfg_subst_nxt = cfg_subst_reg;
+    cnt_start_nxt = cnt_start_reg;
+    timeout_val_nxt = timeout_val_reg;
+    pulse_set_nxt = pulse_set_reg;
+    ts_update_nxt = ts_update_reg;
+    ts_info_nxt = ts_info_reg;
+    rx_det_seq_req_nxt = rx_det_seq_req_reg;
+end   
+endtask
+
 
 endmodule                  
 

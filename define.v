@@ -30,6 +30,9 @@
 `define RX_NUM_CFG_GENERAL      16'd2
 `define RX_NUM_CFG_C2I          16'd8
 
+`define TX_NUM_CFG_C2I          16'd16
+`define TX_NUM_CFG_GENERAL      16'd2
+
 
 `define DETECT                  4'h0 
 `define POLL                    4'h1 

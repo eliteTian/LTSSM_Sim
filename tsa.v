@@ -30,7 +30,11 @@ module tsa(
     output               tsa_p_a2c,
     output               tsa_p2c,
     output               tsa_c_ws2wa,
-    output               tsa_c_wa2nw
+    output               tsa_c_wa2nw,
+    output               tsa_c_nw2na,
+    output               tsa_c_na2c,
+    output               tsa_c_c2i
+
     
     
 );
@@ -62,6 +66,7 @@ reg[15:0] cnt_nxt, cnt_reg;
 reg[15:0] target_nxt, target_reg;
 
 reg[127:0] symbol_mask_nxt, symbol_mask_reg;
+reg[127:0] ts2_symbol_mask_nxt, ts2_symbol_mask_reg;
 
 reg tsa_p_a2c_nxt, tsa_p_a2c_reg;
 assign tsa_p_a2c = tsa_p_a2c_reg;
@@ -75,10 +80,18 @@ assign tsa_c_ws2wa = tsa_c_ws2wa_reg;
 reg tsa_c_wa2nw_nxt, tsa_c_wa2nw_reg;
 assign tsa_c_wa2nw = tsa_c_wa2nw_reg;
 
+reg tsa_c_nw2na_nxt, tsa_c_nw2na_reg;
+assign tsa_c_nw2na = tsa_c_nw2na_reg;
 
+reg tsa_c_na2c_nxt, tsa_c_na2c_reg;
+assign tsa_c_na2c = tsa_c_na2c_reg;
+
+reg tsa_c_c2i_nxt, tsa_c_c2i_reg;
+assign tsa_c_c2i = tsa_c_c2i_reg;
 
 reg [7:0] to_tsg_rcv_link_num_nxt, to_tsg_rcv_link_num_reg;
 reg [7:0] to_tsg_rcv_lane_num_nxt, to_tsg_rcv_lane_num_reg;
+
 reg to_tsg_rcv_link_num_vld_nxt, to_tsg_rcv_link_num_vld_reg;
 reg to_tsg_rcv_lane_num_vld_nxt, to_tsg_rcv_lane_num_vld_reg;
 
@@ -128,6 +141,8 @@ wire[127:0] ts_reg = {
         symbol_reg[15]};
 
 
+
+
 always@(posedge clk) begin
     if(rst) begin
         state_reg <= 2'b00;
@@ -138,13 +153,15 @@ always@(posedge clk) begin
         tsa_p2c_reg <= 0; 
         tsa_c_ws2wa_reg <= 0;
         tsa_c_wa2nw_reg <= 0;
-
+        tsa_c_nw2na_reg <= 0;
+        tsa_c_na2c_reg <= 0;
+        tsa_c_c2i_reg <= 0;
         symbol_mask_reg <= 0;
+        ts2_symbol_mask_reg <= 0;
         to_tsg_rcv_link_num_vld_reg <= 0;
         to_tsg_rcv_link_num_reg <= 0;
         to_tsg_rcv_lane_num_vld_reg <= 0;
         to_tsg_rcv_lane_num_reg <= 0;
-
     end else begin
         state_reg <= state_nxt;
         cnt_reg <= cnt_nxt;
@@ -154,12 +171,13 @@ always@(posedge clk) begin
         tsa_p2c_reg <= tsa_p2c_nxt; 
         tsa_c_ws2wa_reg <= tsa_c_ws2wa_nxt;
         tsa_c_wa2nw_reg <= tsa_c_wa2nw_nxt;
-
+        tsa_c_nw2na_reg <= tsa_c_nw2na_nxt;
+        tsa_c_na2c_reg <= tsa_c_na2c_nxt;
+        tsa_c_c2i_reg <= tsa_c_c2i_nxt;
         symbol_mask_reg <= symbol_mask_nxt;
-        
+        ts2_symbol_mask_reg <= ts2_symbol_mask_nxt;
         to_tsg_rcv_link_num_vld_reg <= to_tsg_rcv_link_num_vld_nxt;
         to_tsg_rcv_link_num_reg <= to_tsg_rcv_link_num_nxt;
-
         to_tsg_rcv_lane_num_vld_reg <= to_tsg_rcv_lane_num_vld_nxt;
         to_tsg_rcv_lane_num_reg <= to_tsg_rcv_lane_num_nxt;        
     end
@@ -179,26 +197,7 @@ end
 
 
 always@* begin
-    state_nxt = state_reg;
-    target_nxt = target_reg;
-    cnt_nxt = cnt_reg;
-    ts_update_ack_nxt = ts_update_ack_reg;   
-    tsa_p_a2c_nxt = tsa_p_a2c_reg;
-    tsa_p2c_nxt = tsa_p2c_reg;
-    tsa_c_ws2wa_nxt = tsa_c_ws2wa_reg;
-    tsa_c_wa2nw_nxt = tsa_c_wa2nw_reg;
-
-    symbol_mask_nxt = symbol_mask_reg;
-    
-    to_tsg_rcv_link_num_vld_nxt = to_tsg_rcv_link_num_vld_reg;
-    to_tsg_rcv_link_num_nxt = to_tsg_rcv_link_num_reg;
-
-    to_tsg_rcv_lane_num_vld_nxt = to_tsg_rcv_lane_num_vld_reg;
-    to_tsg_rcv_lane_num_nxt = to_tsg_rcv_lane_num_reg;
-
-    for(i=0;i<16;i=i+1) begin
-        symbol_nxt[i] = symbol_reg[i]; 
-    end    
+    default_val_init;
     case(state_reg)
         2'b00: begin // set TS expectations apart from lane/link info.
             if(ts_update) begin
@@ -255,7 +254,18 @@ always@* begin
                         `CFG_LN_WAIT: begin
                             //keep mask unchanged as it is already set
                             //previously
-                           // symbol_mask_nxt = 128'hFF_FF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
+                            symbol_mask_nxt = 128'hFF_FF_00_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
+                            ts2_symbol_mask_nxt = 128'hFF_FF_00_FF_FF_FF_00_00_00_00_00_00_00_00_00_00;
+                        end
+                        `CFG_COMPLETE: begin
+                            if(mode==`USP) begin
+                                symbol_nxt[1]  = to_tsg_rcv_link_num_reg; //received
+                                symbol_nxt[2]  = to_tsg_rcv_lane_num_reg;
+                            end else begin
+                                symbol_nxt[1]  = `LINK_NUM; //received
+                                symbol_nxt[2]  = w_lane_num;
+                            end
+                            symbol_mask_nxt = 128'hFF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF; //symbol 1 needs to be checked.
                         end
                         
 
@@ -375,12 +385,114 @@ always@* begin
 
                     `CFG_LN_WAIT: begin
                         if(mode==`DSP) begin //DSP RX expect in the beginning link = PAD, and later link = nonPAD, when nonPAD link is received, alerts FSM.
+                            if(remote_ts_valid) begin // TS1 received
+                             //   if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin // Check if it's a valid TS1  
+                                if (ts_reg_masked == remote_ts_masked) begin
+                                    cnt_nxt = symbol2 != `PADG12 ? cnt_reg + 1 : cnt_reg; //Check if the lane num is nonPAD/ different from what it received when first in the state 
+                                end
+                            end
 
+                            if(cnt_reg >= target_reg) begin // at least 2 echoed lane num received
+                                tsa_c_nw2na_nxt = 1'b1;
+                                cnt_nxt = 0;
+                            end
+                                                       
                         end else begin //USP RX expect nonPAD link all the time, if it accepts, alert USP TX to echo nonPAD link.
                             
-                        end
+                            if(remote_ts_valid) begin // TS1 received
+                             //   if (remote_ts&symbol_mask_reg == ts_reg&symbol_mask_reg) begin // Check if it's a valid TS1  
+                                if (ts_reg_masked == remote_ts_masked) begin // else if(ts_reg == ) ADD TS2 here. USP.laneNum.wait can expect TS2 to enter accept.
+                                    if (symbol2 != to_tsg_rcv_lane_num_reg) begin
+                                        cnt_nxt = cnt_reg + 1; //Check if the lane num is different from the firstly received 
+                                    end 
+                                end else begin //else, it is receiving the same lane number, so expecting TS2s. at this point lane num won't change
+                                    if (symbol2 == to_tsg_rcv_lane_num_reg) begin //check valid ts2 only when lane num match
+                                        if((ts2_symbol_mask_reg & remote_ts) == (ts2_symbol_mask_reg & ts_reg) && symbol6 == `TS2_IDTFR && symbol7 == `TS2_IDTFR &&
+                                            symbol8 == `TS2_IDTFR &&symbol9 == `TS2_IDTFR &&symbol10 == `TS2_IDTFR &&symbol11 == `TS2_IDTFR && symbol12 == `TS2_IDTFR &&
+                                            symbol13 == `TS2_IDTFR && symbol14 == `TS2_IDTFR && symbol15 == `TS2_IDTFR) begin
+                                            cnt_nxt = cnt_reg + 1;
+                                        end
+                                    end
+                                end
+                                
+                            end
 
-                    end
+                            if(cnt_reg >= target_reg) begin // at least 2 echoed link num received
+                                tsa_c_nw2na_nxt = 1'b1;
+                                cnt_nxt = 0;
+                            end
+                            
+
+                        end
+                    end //end CFG_LN_WAIT
+
+                    `CFG_LN_ACC: begin
+                        if(mode==`DSP) begin // Expect same TS1 with same lane and link Num
+                            if(remote_ts_valid) begin //
+                                if (ts_reg_masked == remote_ts_masked) begin
+                                    cnt_nxt = symbol2 == w_lane_num ? cnt_reg + 1 : cnt_reg; //Check if the lane num is the same as local lane num
+                                end // else
+                            end
+
+                            if(cnt_reg >= target_reg ) begin // at least 2 echoed lane num received
+                                tsa_c_na2c_nxt = 1'b1; // add back to lanenum.wait case
+                                cnt_nxt = 0;
+                            end
+                                                       
+                        end else begin //USP RX expect nonPAD link all the time, if it accepts, alert USP TX to echo nonPAD link.
+                            
+                            if(remote_ts_valid) begin 
+                                if (ts_reg_masked == remote_ts_masked) begin // TS1, meaning lane num different
+                                       if (symbol2 != to_tsg_rcv_lane_num_reg) begin
+                                           cnt_nxt = cnt_reg + 1; //Check if the lane num is different from the firstly received 
+                                       end 
+                                end else begin //else, it is receiving the same lane number, so expecting TS2s. at this point lane num won't change
+                                    if (symbol2 == to_tsg_rcv_lane_num_reg) begin //check valid ts2 only when lane num match
+                                        if((ts2_symbol_mask_reg & remote_ts) == (ts2_symbol_mask_reg & ts_reg) && symbol6 == `TS2_IDTFR && symbol7 == `TS2_IDTFR &&
+                                            symbol8 == `TS2_IDTFR &&symbol9 == `TS2_IDTFR &&symbol10 == `TS2_IDTFR &&symbol11 == `TS2_IDTFR && symbol12 == `TS2_IDTFR &&
+                                            symbol13 == `TS2_IDTFR && symbol14 == `TS2_IDTFR && symbol15 == `TS2_IDTFR) begin
+                                            cnt_nxt = cnt_reg + 1;
+                                        end
+                                    end
+                                end
+                            end
+                            if(cnt_reg >= target_reg) begin // at least 2 echoed link num received
+                                tsa_c_na2c_nxt = 1'b1;
+                                cnt_nxt = 0;
+                            end
+                        end
+                    end //end CFG_LN_WCC
+
+                    `CFG_COMPLETE: begin
+                        if(mode==`DSP) begin // Expect same TS1 with same lane and link Num
+                            if(remote_ts_valid) begin //
+                                if (ts_reg_masked == remote_ts_masked) begin
+                                    cnt_nxt = cnt_reg + 1; //Check if the lane num is the same as local lane num
+                                end // else
+                            end
+
+                            if(cnt_reg >= target_reg && to_tsa_ts_sent_enough) begin // at least 2 echoed lane num received
+                                tsa_c_c2i_nxt = 1'b1; // add back to lanenum.wait case
+                                cnt_nxt = 0;
+                            end
+                                                       
+                        end else begin //USP RX expect nonPAD link all the time, if it accepts, alert USP TX to echo nonPAD link.
+                            
+                            if(remote_ts_valid) begin //
+                                if (ts_reg_masked == remote_ts_masked) begin
+                                    cnt_nxt = cnt_reg + 1; //Check if the lane num is the same as local lane num
+                                end // else
+                            end
+
+                            if(cnt_reg >= target_reg && to_tsa_ts_sent_enough ) begin // at least 2 echoed lane num received
+                                tsa_c_c2i_nxt = 1'b1; // add back to lanenum.wait case
+                                cnt_nxt = 0;
+                            end
+
+                        end
+                    end //end CFG_LN_WCC
+                    
+                    
                     
                         
                 endcase
@@ -406,6 +518,31 @@ assign to_tsg_rcv_link_num = to_tsg_rcv_link_num_reg;
 
 assign to_tsg_rcv_lane_num_vld = to_tsg_rcv_lane_num_vld_reg;
 assign to_tsg_rcv_lane_num = to_tsg_rcv_lane_num_reg;
+
+task default_val_init;
+begin
+    state_nxt = state_reg;
+    target_nxt = target_reg;
+    cnt_nxt = cnt_reg;
+    ts_update_ack_nxt = ts_update_ack_reg;   
+    tsa_p_a2c_nxt = tsa_p_a2c_reg;
+    tsa_p2c_nxt = tsa_p2c_reg;
+    tsa_c_ws2wa_nxt = tsa_c_ws2wa_reg;
+    tsa_c_wa2nw_nxt = tsa_c_wa2nw_reg;
+    tsa_c_nw2na_nxt = tsa_c_nw2na_reg;
+    tsa_c_na2c_nxt = tsa_c_na2c_reg;   
+    tsa_c_c2i_nxt = tsa_c_c2i_reg;   
+    symbol_mask_nxt = symbol_mask_reg;
+    ts2_symbol_mask_nxt = ts2_symbol_mask_reg;
+    to_tsg_rcv_link_num_vld_nxt = to_tsg_rcv_link_num_vld_reg;
+    to_tsg_rcv_link_num_nxt = to_tsg_rcv_link_num_reg;
+    to_tsg_rcv_lane_num_vld_nxt = to_tsg_rcv_lane_num_vld_reg;
+    to_tsg_rcv_lane_num_nxt = to_tsg_rcv_lane_num_reg;
+    for(i=0;i<16;i=i+1) begin
+        symbol_nxt[i] = symbol_reg[i]; 
+    end
+end
+endtask
 
 
 endmodule

@@ -197,7 +197,7 @@ always@* begin
                     symbol_nxt[13] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
                     symbol_nxt[14] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
                     symbol_nxt[15] = curr_sub_st == `CFG_COMPLETE ? `TS2_IDTFR : `TS1_IDTFR;
-                    target_nxt     = curr_sub_st == `CFG_LW_START ? `RX_NUM_POLL_ACT2CFG: curr_sub_st == `CFG_COMPLETE ? `RX_NUM_CFG_C2I : `RX_NUM_CFG_GENERAL;
+                    target_nxt     = curr_sub_st == `CFG_COMPLETE ? `TX_NUM_CFG_C2I : `RX_NUM_CFG_GENERAL;
                     case(curr_sub_st)
                         `CFG_LW_START: begin
                             if(mode==`DSP) begin //DSP, send link = nonPAD;
@@ -240,7 +240,7 @@ always@* begin
                         end
 
                         `CFG_IDLE: begin
-                            to_tsa_update_ack_nxt = 0;
+                            
                         end
                     
                     endcase
