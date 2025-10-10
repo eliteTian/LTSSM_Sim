@@ -13,18 +13,19 @@ Git repo:
     https://github.com/eliteTian/LTSSM_Sim.git
 
 Phases:
-    0.  Achieve x4 Gen1 linkup using direct TS com.
-    1.  Add Lane Reversal capable feature.
-    2.  Expand serdes model and use serial com.
-    3.  Add 8b10b Encoding.
-    4.  Achieve x4 Gen3 linkup using serial com.
-    5.  Add link equilization.
-    6.  Add link EQ all Phases.
-    7.  Add Configuration register block.
-    8.  Add 128b/130b encoding.
-    9.  Achieve x4 Gen4 linkup.
-    10. Achieve x4 Gen5 linkup.
-    11. Add Error injection.
+    0.  Expand serdes model and use serial com. 
+    1.  Include Framing Token Decode.
+    2.  Achieve x4 Gen1 linkup using direct TS com.
+    3.  Add Lane Reversal capable feature.
+    4.  Add 8b10b Encoding.
+    5.  Achieve x4 Gen3 linkup using serial com.
+    6.  Add link equilization.
+    7.  Add link EQ all Phases.
+    8.  Add Configuration register block.
+    9.  Add 128b/130b encoding.
+    10. Achieve x4 Gen4 linkup.
+    11. Achieve x4 Gen5 linkup.
+    12. Add Error injection.
 
 Status:
     0.  On Going.   
@@ -39,3 +40,4 @@ Status:
     9.  Not Started.
     10. Not Started.
     11. Not Started.
+    12. Not Started.
